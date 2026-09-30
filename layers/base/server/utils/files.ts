@@ -29,6 +29,7 @@ import { createReadStream, createWriteStream } from 'fs'
 import { pipeline } from 'stream/promises'
 import type { Readable } from 'stream'
 import type { H3Event, MultiPartData } from 'h3'
+import { createHash } from 'crypto'
 
 export async function uploadFile(
   event: H3Event,
@@ -640,9 +641,22 @@ export async function deleteFromS3(path: string, isPrivate = true) {
       .map((item) => ({ Key: item.Key! }))
 
     if (keys.length) {
-      const result = await client.send(
-        new DeleteObjectsCommand({ Bucket: bucket, Delete: { Objects: keys } }),
+      const command = new DeleteObjectsCommand({ Bucket: bucket, Delete: { Objects: keys } })
+      // Infomaniak (OpenStack Swift) requires Content-MD5 instead of the SDK's default CRC32
+      command.middlewareStack.addRelativeTo(
+        (next: any) => async (args: any) => {
+          const headers = args.request.headers
+          for (const name of Object.keys(headers)) {
+            if (name.startsWith('x-amz-checksum-') || name === 'x-amz-sdk-checksum-algorithm') {
+              delete headers[name]
+            }
+          }
+          headers['content-md5'] = createHash('md5').update(args.request.body).digest('base64')
+          return next(args)
+        },
+        { relation: 'after', toMiddleware: 'flexibleChecksumsMiddleware' },
       )
+      const result = await client.send(command)
       if (result.Errors?.length) {
         throw createError({
           statusCode: 502,
