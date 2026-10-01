@@ -9,7 +9,7 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "deploy": "./scripts/deploy.sh",
+    "prod": "./scripts/deploy.sh",
     "postinstall": "nuxt prepare",
     "db:seed": "npx jiti ./server/database/seed.ts",
     "db:generate": "drizzle-kit generate",
