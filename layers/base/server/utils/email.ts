@@ -6,10 +6,12 @@ let transporter: Transporter | null = null
 function useTransporter() {
   const config = useRuntimeConfig()
   if (!transporter) {
+    const port = Number(config.smtp.port)
     transporter = nodemailer.createTransport({
       host: config.smtp.host,
-      port: config.smtp.port,
-      secure: true,
+      port,
+      secure: port === 465,
+      requireTLS: port !== 465,
       pool: true,
       auth: {
         user: config.smtp.user,
