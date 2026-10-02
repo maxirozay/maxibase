@@ -23,6 +23,7 @@
   "upload": "Téléverser",
   "authCheck": {
     "authenticatorCode": "Code de l'application d'authentification",
+    "clipboardPermission": "Veuillez autoriser l'accès au presse-papiers pour coller",
     "code": "Code",
     "continueAsGuest": "Continuer en tant qu'invité",
     "getCode": "Demander le code",

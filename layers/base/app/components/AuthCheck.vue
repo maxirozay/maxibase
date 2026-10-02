@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const emits = defineEmits(['authenticated', 'cancel'])
 const appStore = useAppStore()
+const { $t } = useI18n()
 const { loggedIn, user, fetch: fetchUserSession } = useUserSession()
 const config = useRuntimeConfig()
 const route = useRoute()
@@ -176,8 +177,12 @@ async function getSignInOptions(email: string) {
 }
 
 async function pastePassword() {
-  password.value = await navigator.clipboard.readText()
-  signIn()
+  try {
+    password.value = await navigator.clipboard.readText()
+    signIn()
+  } catch (e) {
+    appStore.notify($t('authCheck.clipboardPermission') as string, 'error')
+  }
 }
 
 onMounted(async () => {
