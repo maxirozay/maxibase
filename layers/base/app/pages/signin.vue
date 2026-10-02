@@ -38,6 +38,7 @@ const route = useRoute()
         :src="config.public.logo"
         :alt="config.public.name"
         height="42"
+        class="fg"
       />
       <span v-else>{{ config.public.name }}</span>
     </I18nLink>
