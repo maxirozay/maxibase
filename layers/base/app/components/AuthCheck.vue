@@ -178,7 +178,7 @@ async function getSignInOptions(email: string) {
 
 async function pastePassword() {
   try {
-    password.value = await navigator.clipboard.readText()
+    password.value = (await navigator.clipboard.readText()).trim()
     signIn()
   } catch (e) {
     appStore.notify($t('authCheck.clipboardPermission') as string, 'error')
@@ -218,7 +218,7 @@ onMounted(async () => {
         <div class="group flex-row">
           <input
             id="password"
-            v-model="password"
+            v-model.trim="password"
             :type="showPassword ? 'text' : 'password'"
             :disabled="isLoading"
             autocomplete="current-password"
