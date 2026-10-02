@@ -25,6 +25,24 @@ const route = useRoute()
 
 <template>
   <div class="page" />
+  <div
+    class="absolute top w p2 flex-row flex-center"
+    style="z-index: 99999"
+  >
+    <I18nLink
+      :to="{ name: 'index' }"
+      style="color: var(--g-bg-contrast)"
+    >
+      <img
+        v-if="config.public.logo"
+        :src="config.public.logo"
+        :alt="config.public.name"
+        height="42"
+      />
+      <span v-else>{{ config.public.name }}</span>
+    </I18nLink>
+    <LocaleSwitcher class="ml" />
+  </div>
   <AuthCheck @authenticated="navigateTo(safePath(route.query.goto), { replace: true })">
     <template #header>
       <h1 class="text-center">{{ $t('authCheck.signin') }}</h1>
@@ -43,10 +61,6 @@ const route = useRoute()
       </div>
     </template>
   </AuthCheck>
-  <LocaleSwitcher
-    class="absolute bottom left m1"
-    style="z-index: 99999"
-  />
 </template>
 
 <style scoped>

@@ -25,7 +25,14 @@ watch(
       :to="{ name: 'index' }"
       style="color: inherit"
     >
-      {{ config.public.name }}
+      <img
+        v-if="config.public.logo"
+        :src="config.public.logo"
+        :alt="config.public.name"
+        height="42"
+        style="display: block"
+      />
+      <span v-else>{{ config.public.name }}</span>
     </I18nLink>
     <input
       id="nav-toggle"
