@@ -10,6 +10,7 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "prod": "./scripts/deploy.sh",
+    "rollback": "./scripts/rollback.sh",
     "postinstall": "nuxt prepare",
     "db:seed": "npx jiti ./server/database/seed.ts",
     "db:generate": "drizzle-kit generate",

@@ -54,6 +54,11 @@ location /files/ {
 
 Run `./scripts/deploy.sh` to deploy the website. To deploy other env file just do `./scripts/deploy.sh {name}` and it will deploy .env.{name}.
 
+Each build is tagged `{utc-timestamp}-{commit}` and the last 5 stay on the server.
+
+Roll back with `pnpm rollback` (the version before the live one), `pnpm rollback {tag}`, or
+list what is available with `pnpm rollback --list`. Rolling back does not undo migrations.
+
 Push your migration with `pnpm db:push-server` or `./scripts/db/push-server.sh` to push trough SSH.
 
 ### Run one instance

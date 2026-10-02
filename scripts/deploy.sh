@@ -3,32 +3,24 @@ set -e
 
 source ./scripts/env.sh
 
-VERSION=$(node -p "require('$ROOT_DIR/package.json').version")
-
 NAME=$PROJECT_NAME
-SSH_KEY="~/.ssh/$SSH_KEY_NAME"
-IMAGE_NAME="$NAME:$VERSION"
+SSH_KEY="$HOME/.ssh/$SSH_KEY_NAME"
+TAG="$(date -u +%Y%m%d-%H%M%S)-$(git rev-parse --short HEAD)"
+git diff --quiet HEAD || TAG="$TAG-dirty"
+IMAGE_NAME="$NAME:$TAG"
 
-echo $VERSION
+echo $TAG
 
 docker build --platform linux/amd64 -t $IMAGE_NAME .
 docker save $IMAGE_NAME > $NAME.tar
 
-scp -i $SSH_KEY $NAME.tar $SERVER_URL:$REMOTE_PATH
-sed "s/\${PROJECT_NAME}:\${TAG:-latest}/\${PROJECT_NAME}:\${TAG:-$VERSION}/g" compose.yaml | \
-ssh -i $SSH_KEY $SERVER_URL "cat > $REMOTE_PATH/compose.yaml"
+scp -i $SSH_KEY $NAME.tar compose.yaml $SERVER_URL:$REMOTE_PATH
+scp -i $SSH_KEY scripts/remote/switch.sh $SERVER_URL:$REMOTE_PATH/switch.sh
 ssh -i $SSH_KEY $SERVER_URL "
   cd $REMOTE_PATH && \
   sudo docker load < $NAME.tar && \
-  IMAGE_NAME=$NAME IMAGE_TAG=$VERSION sudo -E docker compose up -d --force-recreate && \
   rm -f $NAME.tar && \
-
-  # Keep only the last 3 versions of this specific image name
-  sudo docker images '$NAME' --format '{{.Tag}}' | \
-    grep -v 'latest' | \
-    sort -r | \
-    tail -n +4 | \
-    xargs -I {} sudo docker rmi '$NAME:{}' || true
+  bash switch.sh $NAME $TAG
 "
 rm -f $NAME.tar
 docker rmi $IMAGE_NAME
