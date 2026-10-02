@@ -1,9 +1,11 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+const privateRoute = { ssr: false, headers: { 'X-Robots-Tag': 'noindex' } }
+
 export default defineNuxtConfig({
   routeRules: {
     '/signin': { ssr: false },
-    '/user/**': { appMiddleware: 'authenticated', ssr: false },
-    '/admin/**': { appMiddleware: 'admin', ssr: false },
+    '/user/**': { ...privateRoute, appMiddleware: 'authenticated' },
+    '/admin/**': { ...privateRoute, appMiddleware: 'admin' },
   },
   app: {
     head: {
