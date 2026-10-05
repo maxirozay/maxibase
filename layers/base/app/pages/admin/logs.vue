@@ -137,7 +137,7 @@ onMounted(() => {
     <div class="p3">
       <form
         @submit.prevent="getLogs"
-        class="flex mb1"
+        class="flex-column g2 mb1"
       >
         <div class="flex-row group fg flex-1">
           <label

@@ -294,7 +294,10 @@ onMounted(getAuth)
             class="p3"
             style="max-width: min(400px, 90vw)"
           >
-            <form @submit.prevent="confirmEmailChange">
+            <form
+              class="flex-column g2"
+              @submit.prevent="confirmEmailChange"
+            >
               <label for="email-code">{{ $t('code') }}</label>
               <input
                 id="email-code"
@@ -363,7 +366,10 @@ onMounted(getAuth)
             class="p3"
             style="max-width: min(400px, 90vw)"
           >
-            <form @submit.prevent="setPassword">
+            <form
+              class="flex-column g2"
+              @submit.prevent="setPassword"
+            >
               <input
                 v-show="false"
                 type="email"

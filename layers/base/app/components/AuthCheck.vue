@@ -202,6 +202,7 @@ onMounted(async () => {
       <slot name="header"></slot>
       <form
         v-if="optionsFetched"
+        class="flex-column g2"
         @submit.prevent="signIn"
       >
         <input
@@ -282,6 +283,7 @@ onMounted(async () => {
       </form>
       <form
         v-else
+        class="flex-column g2"
         @submit.prevent="getSignInOptions(email)"
       >
         <label for="email">
