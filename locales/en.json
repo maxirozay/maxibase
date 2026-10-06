@@ -25,7 +25,6 @@
     "authenticatorCode": "Authenticator code",
     "clipboardPermission": "Please allow clipboard access to paste",
     "code": "Code",
-    "continueAsGuest": "Continue as Guest",
     "getCode": "Get code",
     "otpSent": "Code sent to {email}",
     "password": "Password",

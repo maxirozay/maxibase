@@ -139,20 +139,6 @@ async function signInWithPasskey() {
   }
 }
 
-async function signInAnonymously() {
-  isLoading.value = true
-  try {
-    await $fetch('/api/auth/anonymous', {
-      method: 'POST',
-    })
-    await refreshSession()
-  } catch (e: any) {
-    handleError(e)
-  } finally {
-    isLoading.value = false
-  }
-}
-
 async function getSignInOptions(email: string) {
   isLoading.value = true
   try {
@@ -308,16 +294,6 @@ onMounted(async () => {
         v-if="!optionsFetched"
         name="footer"
       ></slot>
-      <button
-        v-if="!loggedIn && config.public.anonymousSignup && !optionsFetched"
-        type="button"
-        class="mt2 w"
-        style="background: none; border: none; color: inherit"
-        :disabled="isLoading"
-        @click="signInAnonymously"
-      >
-        {{ $t('authCheck.continueAsGuest') }}
-      </button>
       <button
         v-if="appStore.authPromise"
         type="button"

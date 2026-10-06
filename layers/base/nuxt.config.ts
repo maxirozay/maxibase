@@ -1,5 +1,8 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  routeRules: {
+    '/images/auth/**': { headers: { 'cache-control': 'public, max-age=31536000, immutable' } },
+  },
   runtimeConfig: {
     public: {
       anonymousSignup: false,
