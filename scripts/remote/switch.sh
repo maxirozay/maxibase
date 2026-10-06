@@ -38,7 +38,8 @@ if ! sudo docker image inspect "$NAME:$TAG" > /dev/null 2>&1; then
 fi
 
 echo "Running $NAME:$TAG (was: ${CURRENT:-unknown})"
-sudo env TAG="$TAG" docker compose up -d --force-recreate
+sudo docker tag "$NAME:$TAG" "$NAME:latest"
+sudo docker compose up -d --force-recreate
 echo "$TAG" > .active-tag
 
 # Images in use are refused by rmi, so the live one always survives.
