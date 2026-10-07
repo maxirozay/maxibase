@@ -234,8 +234,8 @@ importers:
         specifier: 1.0.0-rc.3
         version: 1.0.0-rc.3
       drizzle-seed:
-        specifier: ^0.3.1
-        version: 0.3.1(drizzle-orm@1.0.0-rc.3(@types/pg@8.23.1)(pg@8.23.1)(valibot@1.5.0(typescript@5.9.3))(zod@4.6.5))
+        specifier: 1.0.0-rc.3
+        version: 1.0.0-rc.3(drizzle-orm@1.0.0-rc.3(@types/pg@8.23.1)(pg@8.23.1)(valibot@1.5.0(typescript@5.9.3))(zod@4.6.5))
       maxibase:
         specifier: link:.
         version: 'link:'
@@ -2711,13 +2711,10 @@ packages:
       zod:
         optional: true
 
-  drizzle-seed@0.3.1:
-    resolution: {integrity: sha512-F/0lgvfOAsqlYoHM/QAGut4xXIOXoE5VoAdv2FIl7DpGYVXlAzKuJO+IphkKUFK3Dz+rFlOsQLnMNrvoQ0cx7g==}
+  drizzle-seed@1.0.0-rc.3:
+    resolution: {integrity: sha512-oqBUEGoAjyriu5V3OxubfzBe+ebYb5nCslY0YqGCUY2MzRJLJid4+qW3zCuvtGbNy0vmd1MUPloyIVtrFrH75A==}
     peerDependencies:
-      drizzle-orm: '>=0.36.4'
-    peerDependenciesMeta:
-      drizzle-orm:
-        optional: true
+      drizzle-orm: '>=1.0.0-beta.2'
 
   duplexer@0.1.2:
     resolution: {integrity: sha512-jtD6YG370ZCIi/9GTaJKQxWTZD045+4R4hTk/x1UyoqadyJ9x9CgSi1RlVDQF8U2sxLLSnFkCaMihqljHIWgMg==}
@@ -7389,11 +7386,10 @@ snapshots:
       valibot: 1.5.0(typescript@5.9.3)
       zod: 4.6.5
 
-  drizzle-seed@0.3.1(drizzle-orm@1.0.0-rc.3(@types/pg@8.23.1)(pg@8.23.1)(valibot@1.5.0(typescript@5.9.3))(zod@4.6.5)):
+  drizzle-seed@1.0.0-rc.3(drizzle-orm@1.0.0-rc.3(@types/pg@8.23.1)(pg@8.23.1)(valibot@1.5.0(typescript@5.9.3))(zod@4.6.5)):
     dependencies:
-      pure-rand: 6.1.0
-    optionalDependencies:
       drizzle-orm: 1.0.0-rc.3(@types/pg@8.23.1)(pg@8.23.1)(valibot@1.5.0(typescript@5.9.3))(zod@4.6.5)
+      pure-rand: 6.1.0
 
   duplexer@0.1.2: {}
 

@@ -245,7 +245,7 @@ A project's `package.json` looks like this. Add any package your own files impor
   },
   "devDependencies": {
     "drizzle-kit": "1.0.0-rc.3",
-    "drizzle-seed": "^0.3.1",
+    "drizzle-seed": "1.0.0-rc.3",
     "oxfmt": "^0.72.0",
     "@types/node": "^24.0.0",
     "oxlint": "^1.87.0",
