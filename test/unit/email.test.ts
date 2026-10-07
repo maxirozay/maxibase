@@ -125,6 +125,19 @@ describe('buildEmailTemplate', () => {
     expect(subject).toBe('english')
   })
 
+  it('falls back to the layer template when the project has none', async () => {
+    storage.set('assets:base:emails/en/test.html', '<title>layer</title>')
+    const { subject } = await buildEmailTemplate('test', 'en')
+    expect(subject).toBe('layer')
+  })
+
+  it('prefers the project template over the layer one', async () => {
+    storage.set('assets:base:emails/en/test.html', '<title>layer</title>')
+    seedTemplate('<title>project</title>')
+    const { subject } = await buildEmailTemplate('test', 'en')
+    expect(subject).toBe('project')
+  })
+
   it('throws when no template exists at all', async () => {
     await expect(buildEmailTemplate('nope', 'en')).rejects.toThrow(/Email template not found/)
   })

@@ -52,11 +52,14 @@ export async function sendEmail(
   return mail
 }
 
+async function getEmailAsset(key: string) {
+  return ((await useStorage('assets:server').getItem(`emails/${key}`)) ??
+    (await useStorage('assets:base').getItem(`emails/${key}`))) as string | null
+}
+
 export async function buildEmail(html: string, locale: string = 'en', params = {}) {
-  const base = (await useStorage('assets:server').getItem(`emails/base.html`)) as string
-  const localeBase = (await useStorage('assets:server').getItem(
-    `emails/${locale}/base.html`,
-  )) as string
+  const base = (await getEmailAsset('base.html')) as string
+  const localeBase = await getEmailAsset(`${locale}/base.html`)
   return fillTemplate(
     inlineStyles(base.replace('{{content}}', localeBase?.replace('{{content}}', html) || html)),
     params,
@@ -76,14 +79,11 @@ export async function sendEmailTemplate(
 }
 
 export async function buildEmailTemplate(templateId: string, locale: string = 'en') {
-  let template = (await useStorage('assets:server').getItem(
-    `emails/${locale}/${templateId}.html`,
-  )) as string
+  const template =
+    (await getEmailAsset(`${locale}/${templateId}.html`)) ??
+    (await getEmailAsset(`en/${templateId}.html`))
   if (!template) {
-    template = (await useStorage('assets:server').getItem(`emails/en/${templateId}.html`)) as string
-    if (!template) {
-      throw new Error(`Email template not found: ${locale}/${templateId}`)
-    }
+    throw new Error(`Email template not found: ${locale}/${templateId}`)
   }
   const match = template.match(/<title>(.*?)<\/title>/i)
   const subject = match ? (match[1] as string) : '{{appName}}'

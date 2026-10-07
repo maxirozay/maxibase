@@ -94,6 +94,9 @@ export default defineNuxtConfig({
         driver: 'memory',
       },
     },
+    serverAssets: [
+      { baseName: 'base', dir: fileURLToPath(new URL('../../server/assets', import.meta.url)) },
+    ],
   },
   i18n: {
     locales: [{ code: 'en' }, { code: 'fr' }],
