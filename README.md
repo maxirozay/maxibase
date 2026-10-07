@@ -54,6 +54,10 @@ location /files/ {
 
 Run `pnpm prod` to deploy the website. To deploy with another env file, run `pnpm prod -e .env.{name}`.
 
+It builds with the `Dockerfile` and `compose.yaml` at the root of your project, or the
+package's ones in `docker/` when you have none. To customise them, copy them from
+`node_modules/maxibase/docker`, along with `Dockerfile.dockerignore` renamed to `.dockerignore`.
+
 Each build is tagged `{utc-timestamp}-{commit}` and the last 5 stay on the server.
 
 Roll back with `pnpm rollback` (the version before the live one), `pnpm rollback {tag}`, or
@@ -153,6 +157,7 @@ export default defineNuxtConfig({
 | `locales`              | default translations. Your `locales` files are merged on top, key by key                                         |
 | `server/assets/emails` | default email templates. A template in your `server/assets/emails` replaces the package's one with the same path |
 | `scripts`              | deploy, rollback and DB scripts, run from `node_modules` (see `package.json` below)                              |
+| `docker`               | default `Dockerfile` and `compose.yaml` for `pnpm prod`, used when your project has none                         |
 
 New translations, templates and config defaults in a new version reach every project with
 `pnpm update maxibase`, without copying anything.
@@ -175,7 +180,6 @@ The layer relies on these files from your project, keep them when you edit:
 | `app/assets/css/index.css`                        | the `css` entry of the package config |
 | `app/components/TheHeader.vue`, `TheFooter.vue`   | the `default` layout                  |
 | `server/database/schema.ts`, `db.ts`, `access.ts` | the server utils and API routes       |
-| `Dockerfile`, `compose.yaml`                      | `pnpm prod` and `pnpm rollback`       |
 | `drizzle.config.ts`                               | the `db:*` scripts                    |
 
 A project's `package.json` looks like this. Add any package your own files import: pnpm only lets a project import its direct dependencies.

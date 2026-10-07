@@ -12,6 +12,7 @@
   "type": "module",
   "main": "./nuxt.config.ts",
   "files": [
+    "docker",
     "layers/base",
     "locales",
     "scripts",

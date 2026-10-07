@@ -12,10 +12,17 @@ IMAGE_NAME="$NAME:$TAG"
 
 echo $TAG
 
-docker build --platform linux/amd64 -t $IMAGE_NAME .
+# The project's own Dockerfile and compose.yaml, else the package's. The package's Dockerfile
+# brings its own Dockerfile.dockerignore, a project Dockerfile uses the project's .dockerignore.
+DOCKERFILE=Dockerfile
+[ -f "$DOCKERFILE" ] || DOCKERFILE="$SCRIPT_DIR/../docker/Dockerfile"
+COMPOSE=compose.yaml
+[ -f "$COMPOSE" ] || COMPOSE="$SCRIPT_DIR/../docker/compose.yaml"
+
+docker build --platform linux/amd64 -f "$DOCKERFILE" -t $IMAGE_NAME .
 docker save $IMAGE_NAME > $NAME.tar
 
-scp -i $SSH_KEY $NAME.tar compose.yaml $SERVER_URL:$REMOTE_PATH
+scp -i $SSH_KEY $NAME.tar "$COMPOSE" $SERVER_URL:$REMOTE_PATH
 scp -i $SSH_KEY "$SCRIPT_DIR/remote/switch.sh" $SERVER_URL:$REMOTE_PATH/switch.sh
 ssh -i $SSH_KEY $SERVER_URL "
   cd $REMOTE_PATH && \
