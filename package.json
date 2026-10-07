@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "type": "module",
   "private": true,
+  "main": "./nuxt.config.ts",
   "packageManager": "pnpm@12.4.2+sha512.08adc6613180275c7c9edada39dcf08c9c61ad4e7eaf330a4f3461f102b0f907423454d117f98e72d47fef0616070644d7bffc973a6a57f5090a6d7c368b07c9",
   "scripts": {
     "build": "nuxt build",
@@ -11,7 +12,7 @@
     "preview": "nuxt preview",
     "prod": "./scripts/deploy.sh",
     "rollback": "./scripts/rollback.sh",
-    "postinstall": "nuxt prepare",
+    "prepare": "nuxt prepare",
     "db:seed": "npx jiti ./server/database/seed.ts",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
