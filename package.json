@@ -37,7 +37,7 @@
     "drizzle-orm": "1.0.0-rc.3",
     "goku-css": "^9.0.8",
     "nodemailer": "^9.0.3",
-    "nuxt": "^4.5.1",
+    "nuxt": "^4.6.0",
     "nuxt-auth-utils": "0.5.30",
     "nuxt-i18n-micro": "^3.21.4",
     "otplib": "^13.4.1",
