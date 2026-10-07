@@ -1,3 +1,3 @@
-import { db } from '#server/database/db'
+import { db } from '#database/db'
 
 export { db }

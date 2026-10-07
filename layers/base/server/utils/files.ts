@@ -24,7 +24,7 @@ import {
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import type { CompletedPart } from '@aws-sdk/client-s3'
-import { checkFileAccess } from '#server/database/access'
+import { checkFileAccess } from '#database/access'
 import { createReadStream, createWriteStream } from 'fs'
 import { pipeline } from 'stream/promises'
 import type { Readable } from 'stream'

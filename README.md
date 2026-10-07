@@ -175,12 +175,12 @@ In `nuxt.config.ts`, replace `extends: ['./layers/base']` with `extends: ['maxib
 
 The layer relies on these files from your project, keep them when you edit:
 
-| Path                                              | Used by                               |
-| ------------------------------------------------- | ------------------------------------- |
-| `app/assets/css/index.css`                        | the `css` entry of the package config |
-| `app/components/TheHeader.vue`, `TheFooter.vue`   | the `default` layout                  |
-| `server/database/schema.ts`, `db.ts`, `access.ts` | the server utils and API routes       |
-| `drizzle.config.ts`                               | the `db:*` scripts                    |
+| Path                                            | Used by                               |
+| ----------------------------------------------- | ------------------------------------- |
+| `app/assets/css/index.css`                      | the `css` entry of the package config |
+| `app/components/TheHeader.vue`, `TheFooter.vue` | the `default` layout                  |
+| `server/database/schema.ts`                     | the server utils and API routes       |
+| `drizzle.config.ts`                             | the `db:*` scripts                    |
 
 The tables of the `auth` schema ship with the layer, in `layers/base/server/database/schema.ts`.
 Your `server/database/schema.ts` re-exports them and adds your own tables, so `pnpm update maxibase`
@@ -188,6 +188,11 @@ brings their changes: run `pnpm db:generate` after an update. To customise one, 
 schema, a table declared in your file takes precedence over the package's one with the same name.
 Their relations come from `authRelations`, merged after yours in `db.ts`, so only define relations
 on your own tables.
+
+`db.ts`, `relations.ts` and `access.ts` in `server/database` are optional, the layer has a default
+for each in `layers/base/server/database/defaults`: no relations of your own, and file access to
+the user's own folder `u/{id}` or to admins. Add the file to replace the default, then restart the
+dev server. The migrate script is in the package too, see `db:migrate` below.
 
 A project's `package.json` looks like this. Add any package your own files import: pnpm only lets a project import its direct dependencies.
 
@@ -208,7 +213,7 @@ A project's `package.json` looks like this. Add any package your own files impor
     "db:push": "drizzle-kit push",
     "db:push-server": "bash node_modules/maxibase/scripts/db/push-server.sh",
     "db:restore": "bash node_modules/maxibase/scripts/db/restore.sh",
-    "db:migrate": "npx jiti ./server/database/migrate.ts",
+    "db:migrate": "npx jiti node_modules/maxibase/scripts/db/migrate.ts",
     "db:studio": "drizzle-kit studio",
     "lint": "oxlint",
     "fmt": "oxfmt",

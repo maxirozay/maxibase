@@ -10,6 +10,7 @@ export default defineConfig({
       { find: '#server-utils', replacement: `${root}layers/base/server/utils` },
       { find: '#server-api', replacement: `${root}layers/base/server/api` },
       { find: '#shared-utils', replacement: `${root}layers/base/shared/utils` },
+      { find: '#database', replacement: `${root}server/database` },
       { find: '#server', replacement: `${root}server` },
     ],
   },

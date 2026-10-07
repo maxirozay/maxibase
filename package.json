@@ -46,7 +46,7 @@
     "db:push": "drizzle-kit push",
     "db:push-server": "./scripts/db/push-server.sh",
     "db:restore": "./scripts/db/restore.sh",
-    "db:migrate": "npx jiti ./server/database/migrate.ts",
+    "db:migrate": "npx jiti ./scripts/db/migrate.ts",
     "db:studio": "drizzle-kit studio",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",

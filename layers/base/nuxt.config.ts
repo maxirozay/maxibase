@@ -1,4 +1,5 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 const authTypes = { path: fileURLToPath(new URL('./shared/types/auth.d.ts', import.meta.url)) }
@@ -109,7 +110,22 @@ export default defineNuxtConfig({
   },
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
-  modules: ['@nuxt/hints', '@nuxt/icon', 'nuxt-auth-utils', '@pinia/nuxt', 'nuxt-i18n-micro'],
+  modules: [
+    '@nuxt/hints',
+    '@nuxt/icon',
+    'nuxt-auth-utils',
+    '@pinia/nuxt',
+    'nuxt-i18n-micro',
+    (_, nuxt) => {
+      // #database/{name} is the project's server/database/{name}.ts, else the layer's default
+      for (const name of ['db', 'relations', 'access']) {
+        const own = `${nuxt.options.serverDir}/database/${name}`
+        nuxt.options.alias[`#database/${name}`] = existsSync(`${own}.ts`)
+          ? own
+          : fileURLToPath(new URL(`./server/database/defaults/${name}`, import.meta.url))
+      }
+    },
+  ],
   pinia: {
     storesDirs: ['stores'],
   },
