@@ -1,4 +1,8 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { fileURLToPath } from 'node:url'
+
+const authTypes = { path: fileURLToPath(new URL('./shared/types/auth.d.ts', import.meta.url)) }
+
 export default defineNuxtConfig({
   routeRules: {
     '/images/auth/**': { headers: { 'cache-control': 'public, max-age=31536000, immutable' } },
@@ -109,6 +113,15 @@ export default defineNuxtConfig({
   vite: {
     optimizeDeps: {
       include: ['qrcode'],
+    },
+  },
+  hooks: {
+    'prepare:types': ({ references, sharedReferences }) => {
+      references.push(authTypes)
+      sharedReferences.push(authTypes)
+    },
+    'nitro:prepare:types': ({ references }) => {
+      references.push(authTypes)
     },
   },
 })
