@@ -170,17 +170,35 @@ i18n: { locales: [{ code: 'fr' }, { code: 'en', disabled: true }], defaultLocale
 
 ### Starting a project
 
-Copy this repo without `layers`, then edit the `app` and `server` folders, `nuxt.config.ts` and the config files at the root.
-In `nuxt.config.ts`, replace `extends: ['./layers/base']` with `extends: ['maxibase']`.
+Copy only these files from this repo, the rest comes from the package:
 
-The layer relies on these files from your project, keep them when you edit:
+| Path                                                 | Notes                                                                         |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `nuxt.config.ts`                                     | replace `extends: ['./layers/base']` with `extends: ['maxibase']`             |
+| `package.json`                                       | use the one below instead                                                     |
+| `tsconfig.json`, `pnpm-workspace.yaml`, `.gitignore` | as they are                                                                   |
+| `.env.example`                                       | fill it in and rename it to `.env`                                            |
+| `drizzle.config.ts`                                  | used by the `db:*` scripts                                                    |
+| `server/database/schema.ts`                          | re-exports the layer's tables, add yours below                                |
+| `app/assets/css/index.css`                           | required by the `css` entry of the package config                             |
+| `app/components/TheHeader.vue`, `TheFooter.vue`      | required by the `default` layout                                              |
+| `app/pages/index.vue`                                | replace the example with your home page, the layer links to the `index` route |
 
-| Path                                            | Used by                               |
-| ----------------------------------------------- | ------------------------------------- |
-| `app/assets/css/index.css`                      | the `css` entry of the package config |
-| `app/components/TheHeader.vue`, `TheFooter.vue` | the `default` layout                  |
-| `server/database/schema.ts`                     | the server utils and API routes       |
-| `drizzle.config.ts`                             | the `db:*` scripts                    |
+And only if you need them:
+
+| Path                                        | Notes                                                                      |
+| ------------------------------------------- | -------------------------------------------------------------------------- |
+| `server/database/relations.ts`, `access.ts` | organizations, along with `server/utils/organizations.ts` and their tables |
+| `server/database/seed.ts`                   | for `db:seed`                                                              |
+| `.oxlintrc.json`, `.oxfmtrc.json`           | lint and format config                                                     |
+
+Organizations come as a set: the `organizations` and `organization_members` tables in `schema.ts`,
+`relations.ts`, `access.ts` and `server/utils/organizations.ts`. Keep all of them or none.
+
+Don't copy `locales`, `server/assets/emails`, `scripts` or `docker`, they ship with the package. A
+copied translation or email template replaces the package's one and stops receiving its updates,
+so copy only the keys or templates you change. `layers`, `test`, `vitest.config.ts`, `remote-db`
+and `.github` are for this repo only (the CI runs scripts a project's `package.json` doesn't have).
 
 The tables of the `auth` schema ship with the layer, in `layers/base/server/database/schema.ts`.
 Your `server/database/schema.ts` re-exports them and adds your own tables, so `pnpm update maxibase`
