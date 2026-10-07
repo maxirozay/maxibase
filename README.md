@@ -52,14 +52,16 @@ location /files/ {
 
 ### On your local machine
 
-Run `./scripts/deploy.sh` to deploy the website. To deploy other env file just do `./scripts/deploy.sh {name}` and it will deploy .env.{name}.
+Run `pnpm prod` to deploy the website. To deploy with another env file, run `pnpm prod -e .env.{name}`.
 
 Each build is tagged `{utc-timestamp}-{commit}` and the last 5 stay on the server.
 
 Roll back with `pnpm rollback` (the version before the live one), `pnpm rollback {tag}`, or
 list what is available with `pnpm rollback --list`. Rolling back does not undo migrations.
 
-Push your migration with `pnpm db:push-server` or `./scripts/db/push-server.sh` to push trough SSH.
+Push your migration through SSH with `pnpm db:push-server`.
+
+In a project that uses the layer, these scripts run from the package, see [Scripts](#scripts).
 
 ### Run one instance
 
@@ -96,7 +98,7 @@ plus one offline copy. **Lose it and every backup is unrecoverable**, so restore
 check the whole chain works:
 
 ```sh
-./scripts/db/restore.sh backups/backup-....dump.age key.txt
+pnpm db:restore backups/backup-....dump.age key.txt
 ```
 
 ### Restoring
@@ -107,10 +109,12 @@ Backups include the schema, so restore into a database straight from `addDB.sh` 
 ./remote-db/postgres/addDB.sh backup
 ```
 
-Set NUXT_DB to this new DB then restore.
+Then restore with `pnpm db:restore`. It restores into the `NUXT_DB` of your `.env`, or of
+another env file with `-e`, so keep an env file whose `NUXT_DB` points at the new DB:
 
 ```sh
-./scripts/db/restore.sh backups/backup-....dump.age key.txt
+pnpm db:restore -e .env.backup backups/backup-....dump.age key.txt   # encrypted backup
+pnpm db:restore -e .env.backup backups/backup-....dump               # unencrypted backup
 ```
 
 To roll a database back, restore into a new one and swap the names. Stop the app first, the rename needs zero connections. Restore as the app user, or the tables end up owned by
@@ -123,24 +127,110 @@ psql -c "alter database app rename to old;" \
 
 ## Nuxt layer
 
-Clone this repo and delete the `layers` folder or copy folders in `app` and `server` into your project. Then add `extends: [['github:maxirozay/nuxt-base']]` to your nuxt config to use this project as a layer. Check the `.env.example` and `nuxt.config.ts` to change the config.
+This repo is published on npm as [`maxibase`](https://www.npmjs.com/package/maxibase). The
+root of the repo is an example project: copy it to start a new project, then edit what you
+need.
 
-Install the same packages as this project or uses `extends: [['github:maxirozay/nuxt-base', { install: true }]]` but this config can cause some issues during builds.
+### Using it in a project
 
-### What your project must provide
+```sh
+pnpm add maxibase
+```
 
-The layer's server code reaches into your project for its data layer and assets, through
-Nitro's `#server` alias. None of these ship with the layer, and a missing one fails the
-build with an unresolved import:
+```ts
+// nuxt.config.ts
+export default defineNuxtConfig({
+  extends: ['maxibase'],
+})
+```
 
-| Path                           | Must export                                                                                                                              |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `server/database/db.ts`        | `db`, a drizzle client built with your relations                                                                                         |
-| `server/database/schema.ts`    | `auth`, `refreshTokens`, `credentials`, `logs` tables (plus `organizations` / `organizationMembers` if you use `server/utils/access.ts`) |
-| `server/database/relations.ts` | `relations`, wiring `auth` to its refresh tokens and credentials                                                                         |
-| `server/database/access.ts`    | `checkFileAccess(event, path)`, which decides who may read and write a given file path                                                   |
-| `server/assets/emails/**`      | `base.html` and a `{locale}/{templateId}.html` per template you send                                                                     |
-| `locales/**`                   | the translation files for the locales in your `i18n.locales`                                                                             |
+### What ships in the package
 
-Copy them from this repo as a starting point: only `access.ts` is really meant to be
-rewritten per project, the rest is the schema the layer's queries expect.
+| Path                   | Role                                                                                                             |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `layers/base`          | the layer itself: pages, components, API routes, utils, shared types. Not meant to be edited                     |
+| `nuxt.config.ts`       | default route rules, rate limits, i18n and head config. Your config overrides it                                 |
+| `locales`              | default translations. Your `locales` files are merged on top, key by key                                         |
+| `server/assets/emails` | default email templates. A template in your `server/assets/emails` replaces the package's one with the same path |
+| `scripts`              | deploy, rollback and DB scripts, run from `node_modules` (see `package.json` below)                              |
+
+New translations, templates and config defaults in a new version reach every project with
+`pnpm update maxibase`, without copying anything.
+
+To keep a single language, disable the other one in your config:
+
+```ts
+i18n: { locales: [{ code: 'fr' }, { code: 'en', disabled: true }], defaultLocale: 'fr' }
+```
+
+### Starting a project
+
+Copy this repo without `layers`, then edit the `app` and `server` folders, `nuxt.config.ts` and the config files at the root.
+In `nuxt.config.ts`, replace `extends: ['./layers/base']` with `extends: ['maxibase']`.
+
+The layer relies on these files from your project, keep them when you edit:
+
+| Path                                              | Used by                               |
+| ------------------------------------------------- | ------------------------------------- |
+| `app/assets/css/index.css`                        | the `css` entry of the package config |
+| `app/components/TheHeader.vue`, `TheFooter.vue`   | the `default` layout                  |
+| `server/database/schema.ts`, `db.ts`, `access.ts` | the server utils and API routes       |
+| `Dockerfile`, `compose.yaml`                      | `pnpm prod` and `pnpm rollback`       |
+| `drizzle.config.ts`                               | the `db:*` scripts                    |
+
+A project's `package.json` looks like this. Add any package your own files import: pnpm only lets a project import its direct dependencies.
+
+```json
+{
+  "name": "my-project",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "prod": "bash node_modules/maxibase/scripts/deploy.sh",
+    "rollback": "bash node_modules/maxibase/scripts/rollback.sh",
+    "db:seed": "npx jiti ./server/database/seed.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:push-server": "bash node_modules/maxibase/scripts/db/push-server.sh",
+    "db:restore": "bash node_modules/maxibase/scripts/db/restore.sh",
+    "db:migrate": "npx jiti ./server/database/migrate.ts",
+    "db:studio": "drizzle-kit studio",
+    "lint": "oxlint",
+    "fmt": "oxfmt",
+    "typecheck": "nuxt typecheck"
+  },
+  "dependencies": {
+    "drizzle-orm": "1.0.0-rc.3",
+    "goku-css": "^9.0.8",
+    "maxibase": "^1.0.0",
+    "nuxt": "^4.6.0"
+  },
+  "devDependencies": {
+    "drizzle-kit": "1.0.0-rc.3",
+    "drizzle-seed": "^0.3.1",
+    "oxfmt": "^0.72.0",
+    "@types/node": "^24.0.0",
+    "oxlint": "^1.87.0",
+    "typescript": "^5.9.3",
+    "vue-tsc": "^3.3.12"
+  }
+}
+```
+
+### Publishing a new version
+
+The first release goes from `0.0.0` with `npm version major`, which tags it `v1.0.0`.
+`prepublishOnly` runs lint, format check, typecheck and tests before anything is uploaded.
+
+```sh
+npm version patch   # or minor, or major for a change projects must adapt to
+npm publish
+git push --follow-tags
+```
+
+Then run `pnpm update maxibase` in each project. Projects depend on `^1.0.0`, so they only
+move to a new major version when you change that range.

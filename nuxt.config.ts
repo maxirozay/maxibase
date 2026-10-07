@@ -49,5 +49,6 @@ export default defineNuxtConfig({
   css: ['~/assets/css/index.css'],
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
+  srcDir: 'app/',
   extends: ['./layers/base'],
 })

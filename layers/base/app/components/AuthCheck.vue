@@ -226,7 +226,7 @@ onMounted(async () => {
           <button
             type="button"
             class="flex-center fg"
-            :title="$t('paste')"
+            :title="$t('paste') as string"
             @click="pastePassword"
           >
             <Icon name="lucide:clipboard-paste" />
