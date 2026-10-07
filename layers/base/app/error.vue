@@ -19,8 +19,8 @@ if (import.meta.client && !isClientError) {
 </script>
 
 <template>
-  <NuxtLayout>
-    <div class="text-center flex-center flex-column h">
+  <NuxtLayout name="default">
+    <div class="text-center flex-center flex-column m3 g3">
       <h1 class="mt0">{{ error.message }}</h1>
       <NuxtLink to="/">Go back home</NuxtLink>
     </div>
