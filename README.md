@@ -182,6 +182,13 @@ The layer relies on these files from your project, keep them when you edit:
 | `server/database/schema.ts`, `db.ts`, `access.ts` | the server utils and API routes       |
 | `drizzle.config.ts`                               | the `db:*` scripts                    |
 
+The tables of the `auth` schema ship with the layer, in `layers/base/server/database/schema.ts`.
+Your `server/database/schema.ts` re-exports them and adds your own tables, so `pnpm update maxibase`
+brings their changes: run `pnpm db:generate` after an update. To customise one, copy it into your
+schema, a table declared in your file takes precedence over the package's one with the same name.
+Their relations come from `authRelations`, merged after yours in `db.ts`, so only define relations
+on your own tables.
+
 A project's `package.json` looks like this. Add any package your own files import: pnpm only lets a project import its direct dependencies.
 
 ```json
