@@ -1,7 +1,8 @@
 #!/bin/bash
 set -eo pipefail
 
-source ./scripts/env.sh
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+source "$SCRIPT_DIR/../env.sh"
 
 BACKUP_PATH="$1"
 if [ -z "$BACKUP_PATH" ]; then

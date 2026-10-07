@@ -1,7 +1,8 @@
 #!/bin/bash
 set -e
 
-source ./scripts/env.sh
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+source "$SCRIPT_DIR/env.sh"
 
 NAME=$PROJECT_NAME
 SSH_KEY="$HOME/.ssh/$SSH_KEY_NAME"
@@ -15,7 +16,7 @@ docker build --platform linux/amd64 -t $IMAGE_NAME .
 docker save $IMAGE_NAME > $NAME.tar
 
 scp -i $SSH_KEY $NAME.tar compose.yaml $SERVER_URL:$REMOTE_PATH
-scp -i $SSH_KEY scripts/remote/switch.sh $SERVER_URL:$REMOTE_PATH/switch.sh
+scp -i $SSH_KEY "$SCRIPT_DIR/remote/switch.sh" $SERVER_URL:$REMOTE_PATH/switch.sh
 ssh -i $SSH_KEY $SERVER_URL "
   cd $REMOTE_PATH && \
   sudo docker load < $NAME.tar && \

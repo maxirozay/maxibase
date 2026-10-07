@@ -1,7 +1,8 @@
 #!/bin/bash
 set -eo pipefail
 
-source ./scripts/env.sh
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+source "$SCRIPT_DIR/../env.sh"
 
 LOCAL_PORT=5433
 REMOTE_PORT=5432

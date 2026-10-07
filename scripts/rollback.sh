@@ -4,7 +4,8 @@
 # ./scripts/rollback.sh --list    versions still on the server
 set -e
 
-source ./scripts/env.sh
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+source "$SCRIPT_DIR/env.sh"
 
 SSH_KEY="$HOME/.ssh/$SSH_KEY_NAME"
 
