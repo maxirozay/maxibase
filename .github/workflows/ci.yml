@@ -20,12 +20,12 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - run: pnpm nuxt prepare
+
       - run: pnpm lint
 
       - run: pnpm fmt:check
 
-      # nuxt typecheck needs the generated .nuxt types, which postinstall
-      # produces via nuxt prepare.
       - run: pnpm typecheck
 
       - run: pnpm test
