@@ -5,8 +5,8 @@ services:
     env_file:
       - .env
     volumes:
-      - ./volumes/files/public:/app/${NUXT_FILES_PUBLIC_FOLDER:-files}
-      - ./volumes/files/private:/app/${NUXT_FILES_PRIVATE_FOLDER:-files}
+      - ./volumes/files/public:/app/${NUXT_FILES_PUBLIC_FOLDER:-files/public}
+      - ./volumes/files/private:/app/${NUXT_FILES_PRIVATE_FOLDER:-files/private}
       - ./volumes/backups:/app/backups
     ports:
       - ${SERVER_PORT:-3000}:3000
