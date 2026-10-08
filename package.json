@@ -44,7 +44,7 @@
     "db:seed": "npx jiti ./server/database/seed.ts",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
-    "db:push-server": "./scripts/db/push-server.sh",
+    "db:push-prod": "./scripts/db/push-server.sh",
     "db:restore": "./scripts/db/restore.sh",
     "db:migrate": "npx jiti ./scripts/db/migrate.ts",
     "db:studio": "drizzle-kit studio",

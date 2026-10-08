@@ -63,7 +63,7 @@ Each build is tagged `{utc-timestamp}-{commit}` and the last 5 stay on the serve
 Roll back with `pnpm rollback` (the version before the live one), `pnpm rollback {tag}`, or
 list what is available with `pnpm rollback --list`. Rolling back does not undo migrations.
 
-Push your migration through SSH with `pnpm db:push-server`.
+Push your migration through SSH with `pnpm db:push-prod`.
 
 In a project that uses the layer, these scripts run from the package, see [Scripts](#scripts).
 
@@ -229,7 +229,7 @@ A project's `package.json` looks like this. Add any package your own files impor
     "db:seed": "npx jiti ./server/database/seed.ts",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
-    "db:push-server": "bash node_modules/maxibase/scripts/db/push-server.sh",
+    "db:push-prod": "bash node_modules/maxibase/scripts/db/push-server.sh",
     "db:restore": "bash node_modules/maxibase/scripts/db/restore.sh",
     "db:migrate": "npx jiti node_modules/maxibase/scripts/db/migrate.ts",
     "db:studio": "drizzle-kit studio",
