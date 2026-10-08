@@ -244,10 +244,10 @@ A project's `package.json` looks like this. Add any package your own files impor
     "nuxt": "^4.6.0"
   },
   "devDependencies": {
+    "@types/node": "^24.0.0",
     "drizzle-kit": "1.0.0-rc.3",
     "drizzle-seed": "1.0.0-rc.3",
     "oxfmt": "^0.72.0",
-    "@types/node": "^24.0.0",
     "oxlint": "^1.87.0",
     "typescript": "^5.9.3",
     "vue-tsc": "^3.3.12"
