@@ -2,7 +2,7 @@ import * as schema from '#server/database/schema'
 import { defineRelationsPart } from 'drizzle-orm'
 
 // Built from the project schema, so they also apply to a table the project overrides.
-// Spread after the project's relations, so they replace any the project defines on these tables.
+// A project entry for one of these tables replaces the layer's, see defaults/db.ts.
 export const authRelations = defineRelationsPart(schema, (r) => ({
   auth: {
     refreshTokens: r.many.refreshTokens({
