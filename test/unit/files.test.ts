@@ -26,13 +26,20 @@ describe('getSecurePath', () => {
   })
 
   it('rejects traversal segments', () => {
-    for (const path of ['../etc/passwd', 'u/123/../../etc', 'u/./123', '/../secrets']) {
+    for (const path of [
+      '../etc/passwd',
+      'u/123/../../etc',
+      'u/./123',
+      '/../secrets',
+      'u/123/..hidden',
+      'u/123/a..b.png',
+    ]) {
       expect(() => getSecurePath(path)).toThrowError(/Invalid path/)
     }
   })
 
-  it('keeps dots that are part of a name', () => {
-    expect(getSecurePath('u/123/..hidden')).toBe('files/private/u/123/..hidden')
+  it('keeps single dots that are part of a name', () => {
+    expect(getSecurePath('u/123/.hidden')).toBe('files/private/u/123/.hidden')
     expect(getSecurePath('u/123/file.tar.gz')).toBe('files/private/u/123/file.tar.gz')
   })
 
@@ -104,6 +111,24 @@ describe('upload size limit', () => {
 
   it('rejects more chunks than the max size allows', async () => {
     await expect(chunkUpload(Buffer.alloc(1), 3)).rejects.toMatchObject({ statusCode: 413 })
+  })
+
+  it('rejects a filename containing ..', async () => {
+    session.user = { id: '123' }
+    for (const filename of ['..', 'a..b.png']) {
+      await expect(
+        uploadChunk(event, {
+          chunkIndex: 0,
+          totalChunks: 1,
+          filename,
+          type: 'application/octet-stream',
+          chunk: Buffer.alloc(1),
+          path: 'u/123',
+          isPrivate: true,
+          parts: [],
+        }),
+      ).rejects.toMatchObject({ statusCode: 400, message: 'Invalid path' })
+    }
   })
 })
 

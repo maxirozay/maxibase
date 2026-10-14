@@ -54,9 +54,7 @@ export async function uploadFile(
 ) {
   await checkFileAccess(event, path)
   path = getSecurePath(path, isPrivate)
-  if (file.filename && !/[^/]\.[^.]+$/.test(path) && basename(path) !== basename(file.filename)) {
-    path = join(path, basename(file.filename))
-  }
+  path = appendFilename(path, file.filename)
 
   let url
   if (useS3()) {
@@ -88,9 +86,7 @@ export async function uploadStream(
 ) {
   await checkFileAccess(event, path)
   path = getSecurePath(path, isPrivate)
-  if (file.filename && !/[^/]\.[^.]+$/.test(path) && basename(path) !== basename(file.filename)) {
-    path = join(path, basename(file.filename))
-  }
+  path = appendFilename(path, file.filename)
 
   if (useS3()) {
     return uploadStreamToS3(
@@ -158,9 +154,7 @@ export async function uploadChunk(
 
   await checkFileAccess(event, path)
   path = getSecurePath(path, isPrivate)
-  if (filename && !/[^/]\.[^.]+$/.test(path) && basename(path) !== basename(filename)) {
-    path = join(path, basename(filename))
-  }
+  path = appendFilename(path, filename)
 
   if (useS3()) {
     if (!uploadId) {
@@ -434,13 +428,27 @@ export function getSecurePath(path: string, isPrivate = true) {
   const root = isPrivate ? config.filesPrivateFolder : config.filesPublicFolder
   let normalizedPath = path.replace(/^\/+/, '')
 
-  if (normalizedPath.split('/').some((segment) => segment === '..' || segment === '.')) {
-    throw createError({ statusCode: 400, message: 'Invalid path' })
+  if (
+    normalizedPath.includes('..') ||
+    normalizedPath.split('/').some((segment) => segment === '.')
+  ) {
+    throw invalidPath()
   }
 
   normalizedPath = join('/', root, removeRoot(normalizedPath, isPrivate))
 
   return normalizedPath.replace(/^\//, '').replace(/\/$/, '')
+}
+
+function invalidPath() {
+  return createError({ statusCode: 400, message: 'Invalid path' })
+}
+
+function appendFilename(path: string, filename?: string) {
+  if (!filename) return path
+  if (filename.includes('..')) throw invalidPath()
+  if (/[^/]\.[^.]+$/.test(path) || basename(path) === basename(filename)) return path
+  return join(path, basename(filename))
 }
 
 export function removeRoot(path: string, isPrivate = true) {
