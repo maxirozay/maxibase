@@ -54,6 +54,9 @@ location /files/ {
     # Optional: Hide S3 headers for security
     proxy_hide_header x-amz-request-id;
     proxy_hide_header x-amz-id-2;
+
+    add_header X-Content-Type-Options nosniff always;
+    add_header Content-Security-Policy sandbox always;
 }
 ```
 
@@ -62,6 +65,8 @@ location /files/ {
 ```
 location /files/ {
     alias /home/debian/project/volumes/files/public/;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Content-Security-Policy sandbox always;
 }
 ```
 

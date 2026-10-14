@@ -235,6 +235,8 @@ export async function getFile(
 ) {
   await checkFileAccess(event, path)
   path = getSecurePath(path, isPrivate)
+  setHeader(event, 'X-Content-Type-Options', 'nosniff')
+  setHeader(event, 'Content-Security-Policy', 'sandbox')
 
   const range = getRequestHeader(event, 'range')
 
