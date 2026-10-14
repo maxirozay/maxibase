@@ -12,6 +12,7 @@
   "disable": "Désactiver",
   "email": "Email",
   "enable": "Activer",
+  "fileTooLarge": "Trop volumineux, max {max} Mo : {files}",
   "formatFailed": "Impossible de formater ou téléverser {files}",
   "language": "Langue | Langues",
   "paste": "Coller",

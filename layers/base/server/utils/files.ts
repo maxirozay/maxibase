@@ -31,12 +31,22 @@ import type { Readable } from 'stream'
 import type { H3Event, MultiPartData } from 'h3'
 import { createHash } from 'crypto'
 
+const MB = 1024 * 1024
+
+function fileTooLarge() {
+  const { maxSize } = useRuntimeConfig().public.files
+  return createError({ statusCode: 413, message: `File too large, max ${maxSize} MB` })
+}
+
 export async function uploadFile(
   event: H3Event,
   file: MultiPartData,
   path = 'files',
   isPrivate = true,
 ) {
+  if (file.data.length > Number(useRuntimeConfig().public.files.maxSize) * MB) {
+    throw fileTooLarge()
+  }
   await checkFileAccess(event, path)
   path = getSecurePath(path, isPrivate)
   if (file.filename && !/[^/]\.[^.]+$/.test(path) && basename(path) !== basename(file.filename)) {
@@ -134,6 +144,11 @@ export async function uploadChunk(
 ) {
   if (chunkIndex < 0 || chunkIndex >= totalChunks || totalChunks < 1) {
     throw createError({ statusCode: 400, message: 'Invalid chunk index' })
+  }
+  const { chunkSize, maxSize } = useRuntimeConfig().public.files
+  const chunkBytes = (Number(chunkSize) || 1) * MB
+  if (chunk.length > chunkBytes || totalChunks > Math.ceil((Number(maxSize) * MB) / chunkBytes)) {
+    throw fileTooLarge()
   }
 
   await checkFileAccess(event, path)

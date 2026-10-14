@@ -27,6 +27,7 @@ export default defineNuxtConfig({
       files: {
         url: '/files',
         chunkSize: 5, // in MB
+        maxSize: 100, // in MB
       },
     },
     session: {

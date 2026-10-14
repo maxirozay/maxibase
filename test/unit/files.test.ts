@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { resetTestState, setConfig } from '../setup'
-import { getSecurePath, removeRoot, parseRangeHeader, getFileURL } from '#server-utils/files'
+import {
+  getSecurePath,
+  removeRoot,
+  parseRangeHeader,
+  getFileURL,
+  uploadFile,
+  uploadChunk,
+} from '#server-utils/files'
 
 beforeEach(resetTestState)
 
@@ -78,5 +85,36 @@ describe('parseRangeHeader', () => {
     expect(parseRangeHeader('bytes=1000-', size)).toBe('unsatisfiable')
     expect(parseRangeHeader('bytes=900-100', size)).toBe('unsatisfiable')
     expect(parseRangeHeader('bytes=-0', size)).toBe('unsatisfiable')
+  })
+})
+
+describe('upload size limit', () => {
+  const MB = 1024 * 1024
+  const event = {} as any
+  const chunkUpload = (chunk: Buffer, totalChunks: number) =>
+    uploadChunk(event, {
+      chunkIndex: 0,
+      totalChunks,
+      filename: 'big.bin',
+      type: 'application/octet-stream',
+      chunk,
+      path: 'u/123',
+      isPrivate: true,
+      parts: [],
+    })
+
+  it('rejects a file over the max size', async () => {
+    const file = { name: 'file', filename: 'big.bin', data: Buffer.alloc(10 * MB + 1) }
+    await expect(uploadFile(event, file, 'u/123')).rejects.toMatchObject({ statusCode: 413 })
+  })
+
+  it('rejects a chunk larger than the chunk size', async () => {
+    await expect(chunkUpload(Buffer.alloc(5 * MB + 1), 2)).rejects.toMatchObject({
+      statusCode: 413,
+    })
+  })
+
+  it('rejects more chunks than the max size allows', async () => {
+    await expect(chunkUpload(Buffer.alloc(1), 3)).rejects.toMatchObject({ statusCode: 413 })
   })
 })

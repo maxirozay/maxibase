@@ -47,6 +47,15 @@ async function uploadFile(event: Event) {
         appStore.notify('formatFailed', 'error', false, { files: failed.join(', ') })
       }
     }
+    const maxSize = Number(useRuntimeConfig().public.files.maxSize)
+    const tooLarge = files.filter((file) => file.size > maxSize * 1024 * 1024)
+    if (tooLarge.length) {
+      appStore.notify('fileTooLarge', 'error', false, {
+        files: tooLarge.map((file) => file.name).join(', '),
+        max: maxSize,
+      })
+      files = files.filter((file) => !tooLarge.includes(file))
+    }
     if (files.length) {
       let response = await uploadFiles(files, props.path, props.isPrivate, (p) => {
         progress.value = p

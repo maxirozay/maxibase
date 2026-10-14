@@ -11,7 +11,7 @@ const defaultConfig = () => ({
   public: {
     url: 'https://app.test',
     name: 'Test app',
-    files: { url: '/files', chunkSize: 5 },
+    files: { url: '/files', chunkSize: 5, maxSize: 10 },
   },
   filesPublicFolder: 'files/public',
   filesPrivateFolder: 'files/private',

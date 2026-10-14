@@ -12,6 +12,7 @@
   "disable": "Disable",
   "email": "Email",
   "enable": "Enable",
+  "fileTooLarge": "Too large, max {max} MB: {files}",
   "formatFailed": "Could not format or upload {files}",
   "language": "Language | Languages",
   "paste": "Paste",
