@@ -17,18 +17,13 @@ export default defineEventHandler(async (event) => {
   await verifyOTP(email, otp)
 
   const session = await getUserSession(event)
-  const user = await getAuth(event, email).catch((error) => {
+  const user = await getAuth(event, email, true).catch((error) => {
     if (error.statusCode !== 404) throw error
     if (session?.user?.isAnonymous) return setAuth({ id: session.user.id, email })
     if (useRuntimeConfig().autoSignup) return createAuth({ email })
     throw error
   })
-  if (user.totp) {
-    throw createError({
-      status: 401,
-      message: 'TOTP required',
-    })
-  }
+  requireSecondFactor(user)
   return setSession(event, user)
 })
 

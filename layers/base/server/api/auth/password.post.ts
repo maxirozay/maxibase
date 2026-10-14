@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
     }).parse,
   )
 
-  const user = await getAuth(event, email).catch((error: any) => {
+  const user = await getAuth(event, email, true).catch((error: any) => {
     if (error?.statusCode === 404) return null
     throw error
   })
@@ -31,12 +31,7 @@ export default defineEventHandler(async (event) => {
     throw badCredentials()
   }
 
-  if (user.totp) {
-    throw createError({
-      status: 401,
-      message: 'TOTP required',
-    })
-  }
+  requireSecondFactor(user)
 
   return setSession(event, user)
 })

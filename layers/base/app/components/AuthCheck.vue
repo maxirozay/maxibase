@@ -252,6 +252,15 @@ onMounted(async () => {
           {{ $t('authCheck.signin') }}
         </button>
         <button
+          v-if="options.hasPasskey"
+          type="button"
+          :disabled="isLoading"
+          class="flex-center g1 w mt1 bg bg-border"
+          @click="signInWithPasskey"
+        >
+          {{ $t('authCheck.passkey') }}
+        </button>
+        <button
           v-if="!otpRequested"
           type="button"
           :disabled="isLoading"

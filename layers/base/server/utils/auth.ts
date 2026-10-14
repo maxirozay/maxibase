@@ -17,6 +17,21 @@ export async function mfaSetupFlag(user: SessionUser) {
   return { requiresMfaSetup: !row?.totp && !row?.credentials.length }
 }
 
+export function requireSecondFactor(user: Pick<AuthUser, 'totp'> & { credentials?: unknown[] }) {
+  if (user.totp) {
+    throw createError({
+      status: 401,
+      message: 'TOTP required',
+    })
+  }
+  if (useRuntimeConfig().forceMfa && user.credentials?.length) {
+    throw createError({
+      status: 401,
+      message: 'Passkey required',
+    })
+  }
+}
+
 export async function createAuth(user: Pick<AuthUser, 'email'>) {
   const insertedUsers = await db
     .insert(auth)
