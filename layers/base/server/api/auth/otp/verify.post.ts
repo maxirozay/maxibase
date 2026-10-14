@@ -45,12 +45,12 @@ export async function verifyOTP(email: string, otp: string): Promise<void> {
     throw createError({ status: 400, message: 'Request a new OTP.' })
   }
 
+  record.attempts++
+  await storage.setItem(email, record)
+
   const hash = otp.length > 6 ? record.token : record.otp
-  if (hash && (await verifyPassword(hash, otp))) {
-    await storage.removeItem(email)
-  } else {
-    record.attempts++
-    await storage.setItem(email, record)
+  if (!hash || !(await verifyPassword(hash, otp))) {
     throw createError({ status: 400, message: 'Invalid OTP.' })
   }
+  await storage.removeItem(email)
 }

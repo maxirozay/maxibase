@@ -85,4 +85,11 @@ describe('verifyOTP', () => {
     expect(storage.get(`auth:${email}`)).toBeUndefined()
     await expect(verifyOTP(email, '123456')).rejects.toMatchObject({ statusCode: 400 })
   })
+
+  it('counts parallel guesses before checking them', async () => {
+    seed()
+    const guesses = ['000000', '111111', '222222', '123456'].map((otp) => verifyOTP(email, otp))
+    const results = await Promise.allSettled(guesses)
+    expect(results.every((r) => r.status === 'rejected')).toBe(true)
+  })
 })
