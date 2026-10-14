@@ -27,6 +27,7 @@ export default defineNuxtConfig({
       routes: {
         // limit: max requests per IP, window: in seconds
         '/api/log': { limit: 30, window: 60 },
+        '/api/auth/options': { limit: 10, window: 60 },
         '/api/auth/password': { limit: 5, window: 60 },
         '/api/auth/otp/get': { limit: 5, window: 900 },
         '/api/auth/email/get': { limit: 5, window: 900 },
