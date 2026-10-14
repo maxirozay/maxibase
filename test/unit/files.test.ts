@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { resetTestState, setConfig } from '../setup'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { resetTestState, session, setConfig } from '../setup'
 import {
+  readUploadBody,
   getSecurePath,
   removeRoot,
   parseRangeHeader,
   getFileURL,
-  uploadFile,
   uploadChunk,
 } from '#server-utils/files'
 
@@ -89,7 +89,6 @@ describe('parseRangeHeader', () => {
 })
 
 describe('upload size limit', () => {
-  const MB = 1024 * 1024
   const event = {} as any
   const chunkUpload = (chunk: Buffer, totalChunks: number) =>
     uploadChunk(event, {
@@ -103,18 +102,43 @@ describe('upload size limit', () => {
       parts: [],
     })
 
-  it('rejects a file over the max size', async () => {
-    const file = { name: 'file', filename: 'big.bin', data: Buffer.alloc(10 * MB + 1) }
-    await expect(uploadFile(event, file, 'u/123')).rejects.toMatchObject({ statusCode: 413 })
-  })
-
-  it('rejects a chunk larger than the chunk size', async () => {
-    await expect(chunkUpload(Buffer.alloc(5 * MB + 1), 2)).rejects.toMatchObject({
-      statusCode: 413,
-    })
-  })
-
   it('rejects more chunks than the max size allows', async () => {
     await expect(chunkUpload(Buffer.alloc(1), 3)).rejects.toMatchObject({ statusCode: 413 })
+  })
+})
+
+describe('readUploadBody', () => {
+  const MB = 1024 * 1024
+  const event = {} as any
+  const getRequestHeader = vi.mocked((globalThis as any).getRequestHeader)
+  const readMultipartFormData = vi.mocked((globalThis as any).readMultipartFormData)
+
+  beforeEach(() => {
+    session.user = { id: '123' }
+    getRequestHeader.mockReset()
+    readMultipartFormData.mockClear()
+  })
+
+  it('rejects an anonymous request before reading the body', async () => {
+    delete session.user
+    await expect(readUploadBody(event, 5)).rejects.toMatchObject({ statusCode: 401 })
+    expect(readMultipartFormData).not.toHaveBeenCalled()
+  })
+
+  it('rejects a body without a length', async () => {
+    await expect(readUploadBody(event, 5)).rejects.toMatchObject({ statusCode: 411 })
+    expect(readMultipartFormData).not.toHaveBeenCalled()
+  })
+
+  it('rejects a body over the limit before reading it', async () => {
+    getRequestHeader.mockReturnValue(String(6 * MB + 1))
+    await expect(readUploadBody(event, 5)).rejects.toMatchObject({ statusCode: 413 })
+    expect(readMultipartFormData).not.toHaveBeenCalled()
+  })
+
+  it('reads a body within the limit', async () => {
+    getRequestHeader.mockReturnValue(String(5 * MB))
+    await readUploadBody(event, 5)
+    expect(readMultipartFormData).toHaveBeenCalledWith(event)
   })
 })

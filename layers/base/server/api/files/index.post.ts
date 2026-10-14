@@ -1,5 +1,5 @@
 export default defineEventHandler(async (event) => {
-  const body = await readMultipartFormData(event)
+  const body = await readUploadBody(event, Number(useRuntimeConfig().public.files.maxSize))
   if (!body) {
     throw createError({ status: 400, message: 'No file uploaded' })
   }

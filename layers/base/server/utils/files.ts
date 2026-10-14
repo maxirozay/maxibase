@@ -38,15 +38,20 @@ function fileTooLarge() {
   return createError({ statusCode: 413, message: `File too large, max ${maxSize} MB` })
 }
 
+export async function readUploadBody(event: H3Event, maxMB: number) {
+  await requireUserSession(event)
+  const length = getRequestHeader(event, 'content-length')
+  if (!length) throw createError({ statusCode: 411, message: 'Content-Length required' })
+  if (Number(length) > (maxMB + 1) * MB) throw fileTooLarge()
+  return readMultipartFormData(event)
+}
+
 export async function uploadFile(
   event: H3Event,
   file: MultiPartData,
   path = 'files',
   isPrivate = true,
 ) {
-  if (file.data.length > Number(useRuntimeConfig().public.files.maxSize) * MB) {
-    throw fileTooLarge()
-  }
   await checkFileAccess(event, path)
   path = getSecurePath(path, isPrivate)
   if (file.filename && !/[^/]\.[^.]+$/.test(path) && basename(path) !== basename(file.filename)) {
@@ -147,7 +152,7 @@ export async function uploadChunk(
   }
   const { chunkSize, maxSize } = useRuntimeConfig().public.files
   const chunkBytes = (Number(chunkSize) || 1) * MB
-  if (chunk.length > chunkBytes || totalChunks > Math.ceil((Number(maxSize) * MB) / chunkBytes)) {
+  if (totalChunks > Math.ceil((Number(maxSize) * MB) / chunkBytes)) {
     throw fileTooLarge()
   }
 
