@@ -424,14 +424,14 @@ onMounted(getAuth)
             />
             <button
               type="button"
-              class="bg danger-text flex"
+              class="bg danger-text flex-center"
               :disabled="!canRemovePasskey"
               :title="canRemovePasskey ? '' : $t('lastFactor')"
               @click="deletePasskey(credential.id)"
             >
               <Icon name="lucide:trash" />
             </button>
-            <button class="flex fg"><Icon name="lucide:save" /></button>
+            <button class="flex-center fg"><Icon name="lucide:save" /></button>
           </div>
         </form>
         <button
