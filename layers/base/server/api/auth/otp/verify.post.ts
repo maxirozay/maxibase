@@ -17,24 +17,10 @@ export default defineEventHandler(async (event) => {
   await verifyOTP(email, otp)
 
   const session = await getUserSession(event)
-  if (session?.user?.isAnonymous) {
-    let user: any = await getAuth(event, email).catch(() => null)
-    if (!user) {
-      user = {
-        id: session.user.id,
-        email,
-      }
-      await setAuth(user)
-    }
-    return await setSession(event, user)
-  }
-
   const user = await getAuth(event, email).catch((error) => {
-    const config = useRuntimeConfig()
-
-    if (error.statusCode === 404 && config.autoSignup) {
-      return createAuth({ email })
-    }
+    if (error.statusCode !== 404) throw error
+    if (session?.user?.isAnonymous) return setAuth({ id: session.user.id, email })
+    if (useRuntimeConfig().autoSignup) return createAuth({ email })
     throw error
   })
   if (user.totp) {
@@ -43,7 +29,7 @@ export default defineEventHandler(async (event) => {
       message: 'TOTP required',
     })
   }
-  await setSession(event, user)
+  return setSession(event, user)
 })
 
 const MAX_OTP_ATTEMPTS = 3
