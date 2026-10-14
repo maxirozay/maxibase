@@ -50,7 +50,7 @@ function testConfirmation() {
 </script>
 
 <template>
-  <div class="portrait">
+  <div class="portrait px2">
     <div class="flex g2 mt2">
       <button @click="sendLog">Send test log</button>
       <button
