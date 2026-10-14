@@ -4,7 +4,7 @@ export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
   if (!config.rateLimit.enabled) return
 
-  const path = getRequestURL(event).pathname
+  const path = event.path.split('?')[0]!
   const routes = config.rateLimit.routes as Record<string, RateLimitRule>
 
   let matchedRoute = ''

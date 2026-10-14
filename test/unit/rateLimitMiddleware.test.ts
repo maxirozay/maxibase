@@ -47,6 +47,11 @@ describe('rate limit middleware', () => {
     expect(enforce).not.toHaveBeenCalled()
   })
 
+  it('ignores the query string', async () => {
+    await run('/api/auth/otp/get?x=1')
+    expect(enforce.mock.calls[0]?.[1]).toBe('/api/auth/otp/get')
+  })
+
   it('does nothing when rate limiting is disabled', async () => {
     config.rateLimit.enabled = false
     await run('/api/auth/otp/get')
