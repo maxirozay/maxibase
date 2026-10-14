@@ -27,9 +27,14 @@ async function getId(event: H3Event): Promise<string> {
   return getClientIP(event)
 }
 
-export async function enforceRateLimit(event: H3Event, route: string, rule: RateLimitRule) {
+export async function enforceRateLimit(
+  event: H3Event,
+  route: string,
+  rule: RateLimitRule,
+  id?: string,
+) {
   const config = useRuntimeConfig()
-  const id = await getId(event)
+  id ??= await getId(event)
   const key = `${route}:${id}`
   const now = Date.now()
 
