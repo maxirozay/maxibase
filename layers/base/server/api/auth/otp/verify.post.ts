@@ -34,7 +34,21 @@ export default defineEventHandler(async (event) => {
 
 const MAX_OTP_ATTEMPTS = 3
 
+const verifying = new Set<string>()
+
 export async function verifyOTP(email: string, otp: string): Promise<void> {
+  if (verifying.has(email)) {
+    throw createError({ status: 429, message: 'Verification already in progress.' })
+  }
+  verifying.add(email)
+  try {
+    await checkOTP(email, otp)
+  } finally {
+    verifying.delete(email)
+  }
+}
+
+async function checkOTP(email: string, otp: string) {
   const storage = useStorage('auth')
   const record = await storage.getItem<OTP>(email)
   if (!record) {

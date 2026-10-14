@@ -65,8 +65,9 @@ Object.assign(globalThis, {
   getClientIP: (event: AnyRecord) => event?.ip ?? '203.0.113.1',
   log: logSpy,
   useStorage: (base: string) => ({
-    getItem: async (key: string) => storage.get(`${base}:${key}`) ?? null,
-    setItem: async (key: string, value: unknown) => void storage.set(`${base}:${key}`, value),
+    getItem: async (key: string) => structuredClone(storage.get(`${base}:${key}`) ?? null),
+    setItem: async (key: string, value: unknown) =>
+      void storage.set(`${base}:${key}`, structuredClone(value)),
     removeItem: async (key: string) => void storage.delete(`${base}:${key}`),
   }),
   // Stand-in for scrypt: same shape (opaque string in, boolean out), no cost.
