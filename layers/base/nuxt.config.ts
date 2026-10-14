@@ -89,7 +89,7 @@ export default defineNuxtConfig({
     },
     scheduledTasks: {
       '0 3 * * *': 'backup',
-      '0 2 1 * *': 'clean',
+      '0 2 * * *': 'clean',
     },
     storage: {
       auth: {
