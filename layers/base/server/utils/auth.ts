@@ -127,7 +127,7 @@ export async function setSession(event: H3Event, user: SessionUser, refresh = tr
 export async function requireRecentAuth(event: H3Event) {
   const session = await requireUserSession(event)
 
-  if (session.user.isAnonymous || session.user.requiresMfaSetup) return session
+  if (session.user.isAnonymous) return session
 
   const maxAge = useRuntimeConfig().public.recentAuth.maxAge * 1000
   if (!session.authenticatedAt || Date.now() - session.authenticatedAt > maxAge) {

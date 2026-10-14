@@ -15,7 +15,7 @@ export const useAppStore = defineStore('app', () => {
     reject: (value?: any) => any
   } | null>(null)
 
-  const authVerifiedAt = ref(0)
+  const { session } = useUserSession()
   const authPromise = ref()
 
   function confirm(message?: string) {
@@ -32,19 +32,14 @@ export const useAppStore = defineStore('app', () => {
 
   async function checkAuth(): Promise<boolean> {
     const reverifyAfter = useRuntimeConfig().public.recentAuth.maxAge * 1000
-    if (Date.now() - authVerifiedAt.value < reverifyAfter) {
+    if (Date.now() - (session.value?.authenticatedAt ?? 0) < reverifyAfter) {
       return true
     }
     return new Promise<boolean>((resolve) => {
       authPromise.value = { resolve }
+    }).finally(() => {
+      authPromise.value = null
     })
-      .then((verified) => {
-        if (verified) authVerifiedAt.value = Date.now()
-        return verified
-      })
-      .finally(() => {
-        authPromise.value = null
-      })
   }
 
   function setLoading(state: boolean) {

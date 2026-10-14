@@ -38,7 +38,7 @@ const { $getLocale, $t } = useI18n()
 const isMfaSetup = computed(() => user.value?.requiresMfaSetup === true)
 
 async function checkAuth() {
-  return isMfaSetup.value || (await appStore.checkAuth())
+  return appStore.checkAuth()
 }
 
 const isCurrentEmail = computed(() => {
