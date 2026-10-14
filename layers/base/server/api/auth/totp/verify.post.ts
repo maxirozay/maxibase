@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
     throw error
   })
 
-  if (otp) await verifyOTP(email, otp)
+  if (otp) await verifyOTP(email, otp, false)
   else if (!user?.password) {
     await hashPassword(password!)
     throw createError({ status: 400, message: 'Invalid password.' })
@@ -39,6 +39,7 @@ export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'totp', { limit: 5, window: 900 }, user.id)
 
   if ((await verify({ secret: user.totp, token })).valid) {
+    if (otp) await useStorage('auth').removeItem(email)
     await setSession(event, user)
   } else throw createError({ status: 400, message: 'Invalid TOTP.' })
 })

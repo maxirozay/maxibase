@@ -48,6 +48,13 @@ describe('verifyOTP', () => {
     await expect(verifyOTP(email, '123456')).rejects.toMatchObject({ statusCode: 400 })
   })
 
+  it('keeps an unconsumed code but still counts the attempt', async () => {
+    seed()
+    for (let i = 0; i < 3; i++) await verifyOTP(email, '123456', false)
+    await expect(verifyOTP(email, '123456', false)).rejects.toMatchObject({ statusCode: 400 })
+    expect(storage.get(`auth:${email}`)).toBeUndefined()
+  })
+
   it('accepts the magic-link token on the same record', async () => {
     seed()
     await expect(verifyOTP(email, 'a'.repeat(32))).resolves.toBeUndefined()

@@ -36,19 +36,19 @@ const MAX_OTP_ATTEMPTS = 3
 
 const verifying = new Set<string>()
 
-export async function verifyOTP(email: string, otp: string): Promise<void> {
+export async function verifyOTP(email: string, otp: string, consume = true): Promise<void> {
   if (verifying.has(email)) {
     throw createError({ status: 429, message: 'Verification already in progress.' })
   }
   verifying.add(email)
   try {
-    await checkOTP(email, otp)
+    await checkOTP(email, otp, consume)
   } finally {
     verifying.delete(email)
   }
 }
 
-async function checkOTP(email: string, otp: string) {
+async function checkOTP(email: string, otp: string, consume: boolean) {
   const storage = useStorage('auth')
   const record = await storage.getItem<OTP>(email)
   if (!record) {
@@ -66,5 +66,5 @@ async function checkOTP(email: string, otp: string) {
   if (!hash || !(await verifyPassword(hash, otp))) {
     throw createError({ status: 400, message: 'Invalid OTP.' })
   }
-  await storage.removeItem(email)
+  if (consume) await storage.removeItem(email)
 }
