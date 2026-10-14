@@ -10,6 +10,17 @@ Setup your env file by editing the `.env.example` file and rename it to `.env`.
 
 Use the route `http://localhost:3000/dev/email/[templateId]` to see the email while you edit. You can put the locale or any parameter in the query.
 
+### Microsoft sign-in
+
+In your Azure app registration, go to Token configuration → Add optional claim → ID and add
+`email` and `xms_edov`. Without them every Microsoft sign-in is refused.
+
+A Microsoft account signs in to the user with the same email, so the email is only trusted
+when `xms_edov` says its domain is verified in the account's tenant. Any tenant can write any
+address in a user's `mail`, so trusting it unverified lets them sign in as anyone.
+
+The tenant defaults to `organizations`: any work or school account, no personal ones.
+
 ## Deployment
 
 ### On your server

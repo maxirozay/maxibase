@@ -38,7 +38,7 @@ export default defineNuxtConfig({
       microsoft: {
         clientId: '',
         clientSecret: '',
-        tenant: 'common',
+        tenant: 'organizations',
       },
     },
     refreshToken: {

@@ -1,17 +1,21 @@
 export default defineOAuthMicrosoftEventHandler({
-  async onSuccess(event, { user }) {
-    if (!user.mail) {
+  config: {
+    scope: ['openid', 'email', 'User.Read'],
+  },
+  async onSuccess(event, { tokens }) {
+    const claims = JSON.parse(Buffer.from(tokens.id_token.split('.')[1], 'base64url').toString())
+    if (!claims.email || claims.xms_edov !== true) {
       throw createError({
         status: 401,
-        message: 'This Microsoft account has no email address',
+        message: 'This Microsoft account has no verified email address',
       })
     }
 
-    const auth = await getAuth(event, user.mail).catch((error) => {
+    const auth = await getAuth(event, claims.email).catch((error) => {
       const config = useRuntimeConfig()
 
       if (error.statusCode === 404 && config.autoSignup) {
-        return createAuth({ email: user.mail })
+        return createAuth({ email: claims.email })
       }
       throw error
     })
