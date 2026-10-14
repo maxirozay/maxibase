@@ -4,7 +4,7 @@ export default defineOAuthMicrosoftEventHandler({
   },
   async onSuccess(event, { tokens }) {
     const claims = JSON.parse(Buffer.from(tokens.id_token.split('.')[1], 'base64url').toString())
-    if (!claims.email || claims.xms_edov !== true) {
+    if (!claims.email || ![true, '1'].includes(claims.xms_edov)) {
       throw createError({
         status: 401,
         message: 'This Microsoft account has no verified email address',
