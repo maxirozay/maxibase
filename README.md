@@ -19,7 +19,11 @@ A Microsoft account signs in to the user with the same email, so the email is on
 when `xms_edov` says its domain is verified in the account's tenant. Any tenant can write any
 address in a user's `mail`, so trusting it unverified lets them sign in as anyone.
 
-The tenant defaults to `organizations`: any work or school account, no personal ones.
+The tenant defaults to `organizations`: any work or school account, no personal ones. Set
+`NUXT_OAUTH_MICROSOFT_TENANT=common` to also accept personal accounts.
+
+`/auth/microsoft` signs in with the Microsoft account already signed in, link to
+`/auth/microsoft?prompt=select_account` to let the user pick another one.
 
 ## Deployment
 
