@@ -41,18 +41,29 @@ watch(
       aria-label="Toggle menu"
     />
     <div class="content ml">
-      <template v-if="loggedIn">
-        <I18nLink :to="{ name: 'user-auth' }">{{ $t('settings') }}</I18nLink>
-        <I18nLink
-          v-if="user?.role === 'admin'"
-          :to="{ name: 'admin-logs' }"
-        >
-          Logs
-        </I18nLink>
-        <button @click="signout">
-          {{ $t('signout') }}
-        </button>
-      </template>
+      <div
+        v-if="loggedIn"
+        class="dropdown -desktop right icon"
+      >
+        <span>
+          <Icon
+            name="lucide:user"
+            size="24"
+          />
+        </span>
+        <div class="p2 g2">
+          <I18nLink :to="{ name: 'user-auth' }">{{ $t('authentication') }}</I18nLink>
+          <I18nLink
+            v-if="user?.role === 'admin'"
+            :to="{ name: 'admin-logs' }"
+          >
+            Logs
+          </I18nLink>
+          <button @click="signout">
+            {{ $t('signout') }}
+          </button>
+        </div>
+      </div>
     </div>
     <label
       class="toggle ml"
