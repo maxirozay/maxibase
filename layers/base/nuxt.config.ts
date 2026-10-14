@@ -67,7 +67,7 @@ export default defineNuxtConfig({
       secretAccessKey: '',
     },
     backup: {
-      dumpArgs: '-F c',
+      dumpArgs: '-F c --exclude-table-data=auth.refresh_tokens',
       retentionDays: 30,
       agePublicKey: '', // age public key to encrypt backups
     },

@@ -37,7 +37,7 @@ function waitForExit(child: ChildProcess, name: string) {
 export async function createDatabaseBackup(
   backupName: string,
   dbUrl: string,
-  dumpArgs: string = '-F c',
+  dumpArgs: string,
   agePublicKey?: string,
 ) {
   const { conn, env } = splitCredentials(dbUrl)
