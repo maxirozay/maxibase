@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm'
-import { auth } from '#server/database/schema'
+import { auth, credentials } from '#server/database/schema'
 
 export default defineWebAuthnAuthenticateEventHandler({
   async storeChallenge(event, challenge, attemptId) {
@@ -28,7 +28,13 @@ export default defineWebAuthnAuthenticateEventHandler({
     if (!credential) throw createError({ status: 400, message: 'Credential not found' })
     return credential as any
   },
-  async onSuccess(event, { credential }) {
+  async onSuccess(event, { credential, authenticationInfo }) {
+    // the next assertion must report a higher counter, which exposes a cloned authenticator
+    await db
+      .update(credentials)
+      .set({ counter: authenticationInfo.newCounter })
+      .where(eq(credentials.id, credential.id))
+
     const user = await db
       .select()
       .from(auth)
