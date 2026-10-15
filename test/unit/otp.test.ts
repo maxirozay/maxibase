@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { resetTestState, storage } from '../setup'
-import { verifyOTP } from '#server-api/auth/otp/verify.post'
+import { resetTestState, setConfig, storage } from '../setup'
+import handler, { verifyOTP } from '#server-api/auth/otp/verify.post'
+import { requireSecondFactor } from '#server-utils/auth'
 import { generateOTP } from '#server-api/auth/otp/get.post'
 
 const email = 'user@example.com'
@@ -98,5 +99,59 @@ describe('verifyOTP', () => {
     const guesses = ['000000', '111111', '222222', '123456'].map((otp) => verifyOTP(email, otp))
     const results = await Promise.allSettled(guesses)
     expect(results.every((r) => r.status === 'rejected')).toBe(true)
+  })
+})
+
+describe('POST /api/auth/otp/verify', () => {
+  const users = new Map<string, Record<string, any>>()
+  const setSession = vi.fn(async (_event: unknown, user: unknown) => user)
+  const createAuth = vi.fn(async ({ email }: { email: string }) => ({ id: 'new', email }))
+  const verify = (otp = '123456') => handler({ body: { email, otp } } as any)
+
+  beforeEach(() => {
+    users.clear()
+    setSession.mockClear()
+    createAuth.mockClear()
+    vi.stubGlobal('setSession', setSession)
+    vi.stubGlobal('createAuth', createAuth)
+    vi.stubGlobal('requireSecondFactor', requireSecondFactor)
+    vi.stubGlobal('getAuth', async (_event: unknown, email: string) => {
+      const user = users.get(email)
+      if (!user) throw Object.assign(new Error('User not found'), { statusCode: 404 })
+      return user
+    })
+  })
+
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('signs in and consumes the code', async () => {
+    users.set(email, { id: '1', email, credentials: [] })
+    seed()
+    await verify()
+    expect(setSession).toHaveBeenCalledOnce()
+    expect(storage.get(`auth:${email}`)).toBeUndefined()
+  })
+
+  it('keeps the code for /totp/verify when a TOTP is required', async () => {
+    users.set(email, { id: '1', email, totp: 'secret', credentials: [] })
+    seed()
+    await expect(verify()).rejects.toMatchObject({ statusCode: 401, message: 'TOTP required' })
+    expect(storage.get(`auth:${email}`)).toMatchObject({ attempts: 0 })
+    expect(setSession).not.toHaveBeenCalled()
+  })
+
+  it('needs a valid code before telling an unknown email apart', async () => {
+    seed()
+    await expect(verify('000000')).rejects.toMatchObject({ message: 'Invalid OTP.' })
+    await expect(verify()).rejects.toMatchObject({ statusCode: 404 })
+    expect(createAuth).not.toHaveBeenCalled()
+  })
+
+  it('signs up an unknown email when autoSignup is on', async () => {
+    setConfig({ autoSignup: true })
+    seed()
+    await verify()
+    expect(createAuth).toHaveBeenCalledWith({ email })
+    expect(setSession).toHaveBeenCalledOnce()
   })
 })

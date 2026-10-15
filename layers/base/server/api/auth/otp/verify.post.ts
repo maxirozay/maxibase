@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { H3Event } from 'h3'
 import type { OTP } from './get.post'
 
 const bodySchema = z.object({
@@ -14,18 +15,26 @@ export default defineEventHandler(async (event) => {
       message: 'Email and OTP are required',
     })
   }
+
+  const existing = await getAuth(event, email, true).catch((error) => {
+    if (error.statusCode !== 404) throw error
+    return null
+  })
+  if (existing) requireSecondFactor(existing)
+
   await verifyOTP(email, otp)
 
-  const session = await getUserSession(event)
-  const user = await getAuth(event, email, true).catch((error) => {
-    if (error.statusCode !== 404) throw error
-    if (session?.user?.isAnonymous) return setAuth({ id: session.user.id, email })
-    if (useRuntimeConfig().autoSignup) return createAuth({ email })
-    throw error
-  })
-  requireSecondFactor(user)
+  const user = existing ?? (await signUp(event, email))
+  requireSecondFactor(user) // an anonymous account can already have a TOTP
   return setSession(event, user)
 })
+
+async function signUp(event: H3Event, email: string) {
+  const session = await getUserSession(event)
+  if (session?.user?.isAnonymous) return setAuth({ id: session.user.id, email })
+  if (useRuntimeConfig().autoSignup) return createAuth({ email })
+  throw createError({ status: 404, message: 'User not found' })
+}
 
 const MAX_OTP_ATTEMPTS = 3
 
