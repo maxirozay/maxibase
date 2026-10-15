@@ -166,9 +166,11 @@ async function getSignInOptions(email: string) {
   }
 }
 
-async function pastePassword() {
+const pasteFields = { password, totp }
+
+async function pasteTo(field: keyof typeof pasteFields) {
   try {
-    password.value = (await navigator.clipboard.readText()).trim()
+    pasteFields[field].value = (await navigator.clipboard.readText()).trim()
     signIn()
   } catch (e) {
     appStore.notify($t('authCheck.clipboardPermission') as string, 'error')
@@ -201,52 +203,65 @@ onMounted(async () => {
           :value="email"
           autocomplete="username email"
         />
-        <label for="password">
-          {{
-            options.hasPassword && !otpRequested ? $t('authCheck.password') : $t('authCheck.code')
-          }}
-        </label>
-        <div class="group flex-row">
-          <input
-            id="password"
-            v-model.trim="password"
-            :type="showPassword ? 'text' : 'password'"
-            :disabled="isLoading"
-            autocomplete="current-password"
-            :pattern="
-              otpRequested
-                ? '[0-9]{6}'
-                : `.{${config.public.password.min},${config.public.password.max}}`
-            "
-            @paste="signIn"
-          />
-          <button
-            type="button"
-            class="flex-center fg"
-            @click="showPassword = !showPassword"
-          >
-            <Icon :name="showPassword ? 'lucide:eye-off' : 'lucide:eye'" />
-          </button>
-          <button
-            type="button"
-            class="flex-center fg"
-            :title="$t('paste') as string"
-            @click="pastePassword"
-          >
-            <Icon name="lucide:clipboard-paste" />
-          </button>
+        <div>
+          <label for="password">
+            {{
+              options.hasPassword && !otpRequested ? $t('authCheck.password') : $t('authCheck.code')
+            }}
+          </label>
+          <div class="group flex-row">
+            <input
+              id="password"
+              v-model.trim="password"
+              :type="showPassword ? 'text' : 'password'"
+              :disabled="isLoading"
+              autocomplete="current-password"
+              :pattern="
+                otpRequested
+                  ? '[0-9]{6}'
+                  : `.{${config.public.password.min},${config.public.password.max}}`
+              "
+              @paste="signIn"
+            />
+            <button
+              type="button"
+              class="flex-center fg"
+              @click="showPassword = !showPassword"
+            >
+              <Icon :name="showPassword ? 'lucide:eye-off' : 'lucide:eye'" />
+            </button>
+            <button
+              type="button"
+              class="flex-center fg"
+              :title="$t('paste') as string"
+              @click="pasteTo('password')"
+            >
+              <Icon name="lucide:clipboard-paste" />
+            </button>
+          </div>
         </div>
         <div v-if="options.hasTOTP">
           <label for="totp">{{ $t('authCheck.authenticatorCode') }}</label>
-          <input
-            id="totp"
-            v-model.trim="totp"
-            type="text"
-            :disabled="isLoading || !password"
-            autocomplete="one-time-code"
-            @paste="signIn"
-            @change="signIn"
-          />
+          <div class="group flex-row">
+            <input
+              id="totp"
+              v-model.trim="totp"
+              type="text"
+              :disabled="isLoading || !password"
+              autocomplete="one-time-code"
+              @paste="signIn"
+              @change="signIn"
+            />
+            <button
+              type="button"
+              class="flex-center fg"
+              :title="$t('paste') as string"
+              :disabled="isLoading || !password"
+              @click="pasteTo('totp')"
+            >
+              <Icon name="lucide:clipboard-paste" />
+            </button>
+          </div>
         </div>
         <button
           type="submit"
