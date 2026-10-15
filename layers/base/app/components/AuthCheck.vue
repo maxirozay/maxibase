@@ -112,16 +112,22 @@ function handleError(error: any) {
   appStore.notify(error.data?.message || 'Bad credentials', 'error')
 }
 
+const signInForm = useTemplateRef<HTMLFormElement>('signInForm')
 let signInTimer: ReturnType<typeof setTimeout> | undefined
+
+watch(totp, (value) => {
+  const digits = value.replace(/\s/g, '')
+  if (digits !== value) totp.value = digits
+})
 
 // Paste, change and submit can fire together: wait for the pasted value, then sign in once
 function signIn() {
   clearTimeout(signInTimer)
   signInTimer = setTimeout(() => {
     if (!email.value || isLoading.value) return
-    if (options.value.hasTOTP && !totp.value) return
+    // paste and change bypass the browser's check, which only guards the submit
+    if (!signInForm.value?.reportValidity()) return
     if (totp.value) signInWithTOTP()
-    else if (!password.value) requestOtp()
     else if (password.value.length === 6) signInWithOtp()
     else signInWithPassword()
   }, 100)
@@ -194,6 +200,7 @@ onMounted(async () => {
       <slot name="header"></slot>
       <form
         v-if="optionsFetched"
+        ref="signInForm"
         class="flex-column g2"
         @submit.prevent="signIn"
       >
@@ -219,8 +226,9 @@ onMounted(async () => {
               :pattern="
                 otpRequested
                   ? '[0-9]{6}'
-                  : `.{${config.public.password.min},${config.public.password.max}}`
+                  : `[0-9]{6}|.{${config.public.password.min},${config.public.password.max}}`
               "
+              required
               @paste="signIn"
             />
             <button
@@ -249,6 +257,9 @@ onMounted(async () => {
               type="text"
               :disabled="isLoading || !password"
               autocomplete="one-time-code"
+              inputmode="numeric"
+              pattern="[0-9]{6}"
+              required
               @paste="signIn"
               @change="signIn"
             />
