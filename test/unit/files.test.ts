@@ -12,6 +12,7 @@ import {
   uploadChunk,
   cleanTempUploads,
   copyFile,
+  deletePath,
 } from '#server-utils/files'
 
 beforeEach(resetTestState)
@@ -208,7 +209,7 @@ describe('cleanTempUploads', () => {
   })
 })
 
-describe('copyFile', () => {
+describe('copyFile and deletePath', () => {
   const event = {} as any
   let cwd: string
   const privatePath = (path: string) => join(cwd, 'files', 'private', path)
@@ -236,6 +237,22 @@ describe('copyFile', () => {
     await copyFile(event, 'u/123/a.txt', 'u/123/sub/b.txt', true, true)
     expect(await readFile(privatePath('u/123/sub/b.txt'), 'utf8')).toBe('hello')
     expect(await readdir(privatePath('u/123'))).toEqual(['sub'])
+  })
+
+  it('refuses to delete the root folder', async () => {
+    session.user = { id: '1', role: 'admin' }
+    for (const path of ['/', '//', '///']) {
+      await expect(deletePath(event, path)).rejects.toMatchObject({
+        statusCode: 400,
+        message: 'Invalid path',
+      })
+    }
+    expect(await readFile(privatePath('u/123/a.txt'), 'utf8')).toBe('hello')
+  })
+
+  it('deletes a file and its emptied folders', async () => {
+    await deletePath(event, 'u/123/a.txt')
+    expect(await readdir(join(cwd, 'files', 'private'))).toEqual([])
   })
 
   it('rejects a missing source without creating the destination', async () => {

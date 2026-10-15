@@ -372,6 +372,8 @@ export async function getFile(
 export async function deletePath(event: H3Event, path: string, isPrivate = true) {
   await checkFileAccess(event, path)
   path = getSecurePath(path, isPrivate)
+  // An empty path resolves to the root folder, deleting it would wipe every file
+  if (path === getSecurePath('', isPrivate)) throw invalidPath()
   if (useS3()) await deleteFromS3(path, isPrivate)
   else {
     const localPath = join(process.cwd(), path)
