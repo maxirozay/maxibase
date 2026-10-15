@@ -1,6 +1,6 @@
 import { auth, refreshTokens } from '#server/database/schema'
 import { eq, lte } from 'drizzle-orm'
-import { randomBytes } from 'crypto'
+import { createHash, randomBytes } from 'crypto'
 import type { H3Event } from 'h3'
 
 type AuthUser = typeof auth.$inferSelect
@@ -145,12 +145,16 @@ export function generateRefreshToken(): string {
   return randomBytes(32).toString('base64url')
 }
 
+export function hashRefreshToken(token: string) {
+  return createHash('sha256').update(token).digest('base64url')
+}
+
 export async function createRefreshToken(userId: string, event: H3Event) {
   const token = generateRefreshToken()
 
   await db.insert(refreshTokens).values({
     userId,
-    token,
+    token: hashRefreshToken(token),
   })
 
   const config = useRuntimeConfig()
@@ -173,7 +177,9 @@ export async function verifyRefreshToken(event: H3Event) {
     })
   }
 
-  const refreshToken = await db.query.refreshTokens.findFirst({ where: { token: existingToken } })
+  const refreshToken = await db.query.refreshTokens.findFirst({
+    where: { token: hashRefreshToken(existingToken) },
+  })
   if (!refreshToken) {
     deleteCookie(event, 'refresh_token')
     throw createError({
@@ -209,8 +215,9 @@ export async function verifyRefreshToken(event: H3Event) {
   return { refreshToken, user }
 }
 
+// Takes the token from the cookie, never the stored value
 export async function revokeRefreshToken(token: string) {
-  await db.delete(refreshTokens).where(eq(refreshTokens.token, token))
+  await db.delete(refreshTokens).where(eq(refreshTokens.token, hashRefreshToken(token)))
 }
 
 export async function revokeExpiredRefreshToken(creationExpiredAt: Date) {
