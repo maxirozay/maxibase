@@ -1,3 +1,24 @@
+import { z } from 'zod'
+
+const partsSchema = z.array(
+  z.object({
+    ETag: z.string().optional(), // absent on local uploads
+    PartNumber: z.number().int().positive(),
+  }),
+)
+
+function invalidChunkUpload() {
+  return createError({ status: 400, message: 'Invalid chunk upload' })
+}
+
+export function parseParts(value?: string) {
+  try {
+    return partsSchema.parse(JSON.parse(value || '[]'))
+  } catch {
+    throw invalidChunkUpload()
+  }
+}
+
 export default defineEventHandler(async (event) => {
   const body = await readUploadBody(event, Number(useRuntimeConfig().public.files.chunkSize) || 1)
   if (!body) throw createError({ status: 400, message: 'No data' })
@@ -15,11 +36,11 @@ export default defineEventHandler(async (event) => {
   const type = get('type') || 'application/octet-stream'
   const path = get('path') || 'files'
   const isPrivate = get('isPrivate') !== 'false'
-  const parts = get('parts') ? JSON.parse(get('parts') || '[]') : []
+  const parts = parseParts(get('parts'))
   const chunkPart = body.find((p) => p.name === 'chunk')
 
-  if (isNaN(chunkIndex) || isNaN(totalChunks) || !filename || !chunkPart) {
-    throw createError({ status: 400, message: 'Invalid chunk upload' })
+  if (!Number.isInteger(chunkIndex) || !Number.isInteger(totalChunks) || !filename || !chunkPart) {
+    throw invalidChunkUpload()
   }
 
   return uploadChunk(event, {

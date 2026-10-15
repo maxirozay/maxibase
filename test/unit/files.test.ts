@@ -14,6 +14,7 @@ import {
   copyFile,
   deletePath,
 } from '#server-utils/files'
+import { parseParts } from '#server-api/files/chunk.post'
 
 beforeEach(resetTestState)
 
@@ -134,6 +135,25 @@ describe('upload size limit', () => {
           parts: [],
         }),
       ).rejects.toMatchObject({ statusCode: 400, message: 'Invalid path' })
+    }
+  })
+})
+
+describe('parseParts', () => {
+  it('accepts S3 parts, local parts and nothing', () => {
+    expect(parseParts('[{"ETag":"e1","PartNumber":1},{"PartNumber":2}]')).toEqual([
+      { ETag: 'e1', PartNumber: 1 },
+      { PartNumber: 2 },
+    ])
+    expect(parseParts(undefined)).toEqual([])
+    expect(parseParts('')).toEqual([])
+  })
+
+  it('rejects malformed parts with a 400', () => {
+    for (const value of ['{', '{}', '[{"PartNumber":0}]', '[{"PartNumber":"1"}]', '[null]']) {
+      expect(() => parseParts(value)).toThrowError(
+        expect.objectContaining({ statusCode: 400, message: 'Invalid chunk upload' }),
+      )
     }
   })
 })

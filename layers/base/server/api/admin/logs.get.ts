@@ -9,8 +9,7 @@ const querySchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const query = getQuery(event)
-  const { from, to, search, type, limit } = querySchema.parse(query)
+  const { from, to, search, type, limit } = await getValidatedQuery(event, querySchema.parse)
   const text = prepareStringForSearch(search)
 
   const rows = await db.query.logs.findMany({
