@@ -1,4 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { mkdtemp, mkdir, writeFile, utimes, readdir, rm } from 'fs/promises'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import { resetTestState, session, setConfig } from '../setup'
 import {
   readUploadBody,
@@ -7,6 +10,7 @@ import {
   parseRangeHeader,
   getFileURL,
   uploadChunk,
+  cleanTempUploads,
 } from '#server-utils/files'
 
 beforeEach(resetTestState)
@@ -165,5 +169,40 @@ describe('readUploadBody', () => {
     getRequestHeader.mockReturnValue(String(5 * MB))
     await readUploadBody(event, 5)
     expect(readMultipartFormData).toHaveBeenCalledWith(event)
+  })
+})
+
+describe('cleanTempUploads', () => {
+  let cwd: string
+
+  beforeEach(async () => {
+    cwd = await mkdtemp(join(tmpdir(), 'nuxt-base-'))
+    vi.spyOn(process, 'cwd').mockReturnValue(cwd)
+  })
+
+  afterEach(async () => {
+    vi.restoreAllMocks()
+    await rm(cwd, { recursive: true, force: true })
+  })
+
+  it('deletes uploads without a chunk for 24 hours and keeps recent ones', async () => {
+    const tempDir = join(cwd, 'files', 'temp')
+    const stale = join(tempDir, 'stale')
+    await mkdir(stale, { recursive: true })
+    await writeFile(join(stale, '0'), 'a')
+    const old = new Date(Date.now() - 25 * 60 * 60 * 1000)
+    await utimes(join(stale, '0'), old, old)
+    await utimes(stale, old, old)
+
+    await mkdir(join(tempDir, 'recent'))
+    await writeFile(join(tempDir, 'recent', '0'), 'a')
+
+    await cleanTempUploads()
+
+    expect(await readdir(tempDir)).toEqual(['recent'])
+  })
+
+  it('does nothing before any chunked upload', async () => {
+    await expect(cleanTempUploads()).resolves.toBeUndefined()
   })
 })

@@ -21,6 +21,7 @@ import {
   UploadPartCommand,
   CompleteMultipartUploadCommand,
   AbortMultipartUploadCommand,
+  ListMultipartUploadsCommand,
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import type { CompletedPart } from '@aws-sdk/client-s3'
@@ -202,6 +203,61 @@ export async function uploadChunk(
   await rm(tmpDir, { recursive: true, force: true })
 
   return getFileURL(path, isPrivate)
+}
+
+const TEMP_UPLOAD_MAX_AGE_MS = 24 * 60 * 60 * 1000
+
+// Removes chunked uploads that were started but never finished
+export async function cleanTempUploads(maxAgeMs = TEMP_UPLOAD_MAX_AGE_MS) {
+  const cutoff = Date.now() - maxAgeMs
+
+  const tempDir = join(process.cwd(), 'files', 'temp')
+  const uploadIds = await readdir(tempDir).catch(() => [])
+  await Promise.all(
+    uploadIds.map(async (uploadId) => {
+      const uploadDir = join(tempDir, uploadId)
+      const stats = await stat(uploadDir)
+      if (!stats.isDirectory()) return
+      // A retried chunk overwrites its file without touching the folder's mtime
+      const chunks = await readdir(uploadDir)
+      const chunkTimes = await Promise.all(
+        chunks.map(async (chunk) => (await stat(join(uploadDir, chunk))).mtimeMs),
+      )
+      if (Math.max(stats.mtimeMs, ...chunkTimes) < cutoff) {
+        await rm(uploadDir, { recursive: true, force: true })
+      }
+    }),
+  )
+
+  const client = useS3()
+  if (!client) return
+
+  const config = useRuntimeConfig()
+  const buckets = [...new Set([config.s3.privateBucket, config.s3.publicBucket])].filter(Boolean)
+  for (const Bucket of buckets) {
+    let KeyMarker: string | undefined
+    let UploadIdMarker: string | undefined
+    do {
+      const response = await client.send(
+        new ListMultipartUploadsCommand({ Bucket, KeyMarker, UploadIdMarker }),
+      )
+      await Promise.all(
+        (response.Uploads || [])
+          .filter((upload) => upload.Initiated && upload.Initiated.getTime() < cutoff)
+          .map((upload) =>
+            client.send(
+              new AbortMultipartUploadCommand({
+                Bucket,
+                Key: upload.Key,
+                UploadId: upload.UploadId,
+              }),
+            ),
+          ),
+      )
+      KeyMarker = response.IsTruncated ? response.NextKeyMarker : undefined
+      UploadIdMarker = response.IsTruncated ? response.NextUploadIdMarker : undefined
+    } while (KeyMarker)
+  }
 }
 
 export function getFileURL(path: string, isPrivate = true) {

@@ -1,7 +1,7 @@
 export default defineTask({
   meta: {
     name: 'clean',
-    description: 'Clean old backups and logs',
+    description: 'Clean old backups, logs and unfinished uploads',
   },
   async run() {
     const config = useRuntimeConfig()
@@ -21,6 +21,7 @@ export default defineTask({
         )
       }
       await cleanLogs()
+      await cleanTempUploads()
 
       return {
         result: {
