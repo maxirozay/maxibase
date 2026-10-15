@@ -112,15 +112,19 @@ function handleError(error: any) {
   appStore.notify(error.data?.message || 'Bad credentials', 'error')
 }
 
+let signInTimer: ReturnType<typeof setTimeout> | undefined
+
+// Paste, change and submit can fire together: wait for the pasted value, then sign in once
 function signIn() {
-  if (!email.value) return
-  if (options.value.hasTOTP && !totp.value) return
-  setTimeout(() => {
+  clearTimeout(signInTimer)
+  signInTimer = setTimeout(() => {
+    if (!email.value || isLoading.value) return
+    if (options.value.hasTOTP && !totp.value) return
     if (totp.value) signInWithTOTP()
     else if (!password.value) requestOtp()
     else if (password.value.length === 6) signInWithOtp()
     else signInWithPassword()
-  }, 100) // wait for paste event to complete
+  }, 100)
 }
 
 const { authenticate } = useWebAuthn({
@@ -240,8 +244,8 @@ onMounted(async () => {
             type="text"
             :disabled="isLoading || !password"
             autocomplete="one-time-code"
-            @paste="signInWithTOTP"
-            @change="signInWithTOTP"
+            @paste="signIn"
+            @change="signIn"
           />
         </div>
         <button
