@@ -2,6 +2,7 @@
 const { loggedIn, user, clear: clearSession } = useUserSession()
 
 const config = useRuntimeConfig()
+const cart = useCartStore()
 
 async function signout() {
   await clearSession()
@@ -20,7 +21,7 @@ watch(
 </script>
 
 <template>
-  <nav class="p2 g2 fg">
+  <nav class="p2 g2">
     <I18nLink
       :to="{ name: 'index' }"
       style="color: inherit"
@@ -41,6 +42,19 @@ watch(
       aria-label="Toggle menu"
     />
     <div class="content ml">
+      <I18nLink
+        :to="{ name: 'cart' }"
+        class="flex-row g1 flex-center"
+        :aria-label="$t('cart')"
+      >
+        <Icon
+          name="lucide:shopping-cart"
+          size="24"
+        />
+        <ClientOnly>
+          <span v-if="cart.count">{{ cart.count }}</span>
+        </ClientOnly>
+      </I18nLink>
       <div
         v-if="loggedIn"
         class="dropdown -desktop right icon"
@@ -53,6 +67,7 @@ watch(
         </span>
         <div class="p2 g2">
           <I18nLink :to="{ name: 'user-auth' }">{{ $t('authentication') }}</I18nLink>
+          <I18nLink :to="{ name: 'manage-products' }">{{ $t('products') }}</I18nLink>
           <I18nLink
             v-if="user?.role === 'admin'"
             :to="{ name: 'admin-logs' }"

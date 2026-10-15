@@ -1,105 +1,45 @@
 <script setup lang="ts">
-definePageMeta({
-  middleware: ['authenticated'],
-})
-const { user } = useUserSession()
-const path = ref('u/' + user.value!.id)
-const appStore = useAppStore()
+const { shop, formatPrice } = await useShop()
+const cart = useCartStore()
 
-async function sendLog() {
-  await $fetch('/api/log', {
-    method: 'POST',
-    body: {
-      summary: 'Test log ' + new Date().toISOString().substring(0, 16),
-      data: { test: 1, nested: { value: 'abc' } },
-      origin: useRoute().fullPath,
-      type: Math.random() > 0.5 ? 'Info' : 'Error',
-    },
-  })
-  appStore.notify('Test log sent to server')
-}
-
-const files = ref([] as any[])
-async function listFiles() {
-  const params = new URLSearchParams({
-    path: path.value,
-    isPrivate: 'true',
-  }).toString()
-  files.value = await $fetch<any[]>(`/api/files?${params}`)
-}
-
-async function copyFiles(deleteSrc = false) {
-  await $fetch('/api/files/copy', {
-    method: 'POST',
-    body: {
-      src: path.value,
-      dest: path.value.replace(user.value!.id, user.value!.id + (deleteSrc ? '/move' : '/copy')),
-      isPrivate: true,
-      deleteSrc,
-    },
-  })
-  appStore.notify('Files copied')
-}
-
-function testConfirmation() {
-  appStore.confirm('Are you sure?').then((confirmed) => {
-    if (confirmed) appStore.notify('Confirmed', 'success')
-    else appStore.notify('Cancelled', 'error')
-  })
-}
+useHead({ title: () => shop.value?.name })
 </script>
 
 <template>
-  <div class="portrait px2">
-    <div class="flex g2 mt2">
-      <button @click="sendLog">Send test log</button>
-      <button
-        class="primary"
-        @click="testConfirmation"
+  <div
+    v-if="shop"
+    class="portrait px2"
+  >
+    <h1>{{ shop.name }}</h1>
+    <div class="grid-fill g2">
+      <div
+        v-for="product in shop.products"
+        :key="product.id"
+        class="flex-column g1 p2 shadow border-radius"
       >
-        Show Confirmation
-      </button>
-    </div>
-    <h1>File Management</h1>
-    <label for="path">Path</label>
-    <div class="flex group">
-      <input
-        type="text"
-        id="path"
-        v-model="path"
-        class="flex-4"
-      />
-      <FilesDelete
-        class="bg flex-center"
-        :path="path"
-        :isPrivate="true"
-      />
-      <button @click="copyFiles()">Copy</button>
-      <button @click="copyFiles(true)">Move</button>
-      <button @click="listFiles">List</button>
-      <label
-        for="upload"
-        class="label__file primary flex-row g2 flex-center"
-      >
-        <b>{{ $t('upload') }}</b>
-        <FilesUpload
-          id="upload"
-          :path="path"
-          :isPrivate="true"
-          @uploaded="(response) => console.log('File uploaded', response)"
+        <img
+          v-if="product.image"
+          :src="product.image"
+          :alt="product.name"
+          class="w"
         />
-      </label>
-    </div>
-    <div
-      v-for="file in files"
-      :key="file.path"
-    >
-      <a
-        :href="file.url"
-        target="_blank"
-      >
-        {{ file.path }}
-      </a>
+        <b>{{ product.name }}</b>
+        <p
+          v-if="product.description"
+          class="m0"
+        >
+          {{ product.description }}
+        </p>
+        <div class="flex g2 mt">
+          <span class="flex-1">{{ formatPrice(product.price) }}</span>
+          <button
+            class="primary"
+            @click="cart.add({ productId: product.id, name: product.name, price: product.price })"
+          >
+            {{ $t('addToCart') }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>

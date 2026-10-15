@@ -6,6 +6,7 @@ export default defineNuxtConfig({
     '/signin': { ssr: false },
     '/user/**': { ...privateRoute, appMiddleware: 'authenticated' },
     '/admin/**': { ...privateRoute, appMiddleware: 'admin' },
+    '/manage/**': { ...privateRoute, appMiddleware: 'authenticated' },
   },
   app: {
     head: {
@@ -23,6 +24,10 @@ export default defineNuxtConfig({
       name: 'Nuxt base',
       logo: 'https://placehold.co/200x100?text=logo',
     },
+    stripe: {
+      secretKey: '',
+      webhookSecret: '',
+    },
     rateLimit: {
       routes: {
         // limit: max requests per IP, window: in seconds
@@ -36,6 +41,7 @@ export default defineNuxtConfig({
         '/api/auth/totp/verify': { limit: 10, window: 60 },
         '/api/auth/webauthn/authenticate': { limit: 10, window: 60 },
         '/api/auth/anonymous': { limit: 5, window: 3600 },
+        '/api/shop/checkout': { limit: 10, window: 60 },
       },
     },
   },

@@ -1,0 +1,8 @@
+{
+  "active": "Visible in the shop",
+  "deleteProduct": "Delete {name}?",
+  "imageUrl": "Image URL",
+  "name": "Name",
+  "price": "Price",
+  "productDescription": "Description"
+}
