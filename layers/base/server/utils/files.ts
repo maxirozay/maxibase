@@ -517,8 +517,23 @@ function invalidPath() {
 function appendFilename(path: string, filename?: string) {
   if (!filename) return path
   if (filename.includes('..')) throw invalidPath()
-  if (/[^/]\.[^.]+$/.test(path) || basename(path) === basename(filename)) return path
-  return join(path, basename(filename))
+  filename = cleanFilename(filename)
+  if (/[^/]\.[^.]+$/.test(path) || basename(path) === filename) return path
+  return join(path, filename)
+}
+
+// Keeps letters (accents too), digits, . - and _, anything else becomes a single -.
+// NFC, because macOS sends é as e + accent and the same name would not match.
+export function cleanFilename(filename: string) {
+  const name = basename(filename)
+    .normalize('NFC')
+    .replace(/[^\p{L}\p{M}\p{N}._-]+/gu, '-')
+    .replace(/-*\.-*/g, '.')
+    .replace(/\.{2,}/g, '.')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-+|[-.]+$/g, '')
+  // Nothing left of the name, or a hidden file: keep the extension behind a visible name
+  return !name || name.startsWith('.') ? `file${name}` : name
 }
 
 export function removeRoot(path: string, isPrivate = true) {

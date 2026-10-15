@@ -13,6 +13,7 @@ import {
   cleanTempUploads,
   copyFile,
   deletePath,
+  cleanFilename,
 } from '#server-utils/files'
 import { parseParts } from '#server-api/files/chunk.post'
 
@@ -106,6 +107,29 @@ describe('parseRangeHeader', () => {
     expect(parseRangeHeader('bytes=1000-', size)).toBe('unsatisfiable')
     expect(parseRangeHeader('bytes=900-100', size)).toBe('unsatisfiable')
     expect(parseRangeHeader('bytes=-0', size)).toBe('unsatisfiable')
+  })
+})
+
+describe('cleanFilename', () => {
+  it('turns spaces and symbols into single dashes and keeps accents', () => {
+    expect(cleanFilename('Rapport été 2026 (final).pdf')).toBe('Rapport-été-2026-final.pdf')
+    expect(cleanFilename('100% #1?.pdf')).toBe('100-1.pdf')
+    expect(cleanFilename('a - b_c.tar.gz')).toBe('a-b_c.tar.gz')
+  })
+
+  it('composes decomposed accents so macOS names match', () => {
+    expect(cleanFilename('été.png')).toBe('été.png')
+  })
+
+  it('drops any folder and trims dashes and dots at the ends', () => {
+    expect(cleanFilename('dir/sub/ -name- .txt')).toBe('name.txt')
+    expect(cleanFilename('name.')).toBe('name')
+  })
+
+  it('keeps a visible name when nothing or only an extension is left', () => {
+    expect(cleanFilename('???.pdf')).toBe('file.pdf')
+    expect(cleanFilename('.env')).toBe('file.env')
+    expect(cleanFilename('***')).toBe('file')
   })
 })
 
@@ -280,6 +304,23 @@ describe('copyFile and deletePath', () => {
   it('deletes a file and its emptied folders', async () => {
     await deletePath(event, 'u/123/a.txt')
     expect(await readdir(join(cwd, 'files', 'private'))).toEqual([])
+  })
+
+  it('stores an upload under its cleaned name', async () => {
+    const url = await uploadChunk(event, {
+      chunkIndex: 0,
+      totalChunks: 1,
+      filename: 'Rapport été (final).pdf',
+      type: 'application/pdf',
+      chunk: Buffer.from('pdf'),
+      path: 'u/123',
+      isPrivate: true,
+      parts: [],
+    })
+    expect(url).toBe(
+      'https://app.test/api/files/u/123/Rapport-%C3%A9t%C3%A9-final.pdf?isPrivate=true',
+    )
+    expect(await readFile(privatePath('u/123/Rapport-été-final.pdf'), 'utf8')).toBe('pdf')
   })
 
   it('rejects a missing source without creating the destination', async () => {
