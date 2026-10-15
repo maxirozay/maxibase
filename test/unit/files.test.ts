@@ -70,6 +70,13 @@ describe('getFileURL', () => {
     )
     expect(getFileURL('files/public/logo.png', false)).toBe('/files/logo.png')
   })
+
+  it('encodes characters that would break the URL', () => {
+    expect(getFileURL('files/private/u/1/100% #1?.pdf')).toBe(
+      'https://app.test/api/files/u/1/100%25%20%231%3F.pdf?isPrivate=true',
+    )
+    expect(getFileURL('files/public/été.png', false)).toBe('/files/%C3%A9t%C3%A9.png')
+  })
 })
 
 describe('parseRangeHeader', () => {

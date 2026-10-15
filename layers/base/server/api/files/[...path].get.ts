@@ -33,5 +33,14 @@ export default defineEventHandler(async (event) => {
     cache = `private, max-age=${maxAge || 3600}`
   }
   setHeader(event, 'Cache-Control', cache)
-  return getFile(event, decodeURIComponent(path), isPrivate, serverCache, expireIn, redirect)
+  return getFile(event, decodePath(path), isPrivate, serverCache, expireIn, redirect)
 })
+
+// h3 decodes the path but keeps %25 encoded, so a % in a name needs this second pass
+function decodePath(path: string) {
+  try {
+    return decodeURIComponent(path)
+  } catch {
+    throw createError({ status: 400, message: 'Invalid path' }) // a % not followed by hex
+  }
+}

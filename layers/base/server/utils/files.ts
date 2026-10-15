@@ -261,9 +261,14 @@ export async function cleanTempUploads(maxAgeMs = TEMP_UPLOAD_MAX_AGE_MS) {
   }
 }
 
+// A name can hold %, # or ?, which would end or break the URL unencoded
+function encodePath(path: string) {
+  return path.split('/').map(encodeURIComponent).join('/')
+}
+
 export function getFileURL(path: string, isPrivate = true) {
   const config = useRuntimeConfig()
-  const url = removeRoot(path, isPrivate)
+  const url = encodePath(removeRoot(path, isPrivate))
 
   if (isPrivate) {
     return config.public.url + join('/', 'api/files', url) + '?isPrivate=true'
@@ -828,7 +833,7 @@ export function getS3Key(path: string) {
 
 function getS3URL(path: string) {
   const config = useRuntimeConfig()
-  return `${config.public.files.url}/${getS3Key(path)}`
+  return `${config.public.files.url}/${encodePath(getS3Key(path))}`
 }
 
 async function getS3SignedUrl(key: string, expiresIn = 3600, isPrivate = true): Promise<string> {
