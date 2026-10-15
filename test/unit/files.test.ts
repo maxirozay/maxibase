@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { mkdtemp, mkdir, writeFile, utimes, readdir, rm } from 'fs/promises'
+import { mkdtemp, mkdir, writeFile, utimes, readdir, readFile, rm } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { resetTestState, session, setConfig } from '../setup'
@@ -11,6 +11,7 @@ import {
   getFileURL,
   uploadChunk,
   cleanTempUploads,
+  copyFile,
 } from '#server-utils/files'
 
 beforeEach(resetTestState)
@@ -204,5 +205,43 @@ describe('cleanTempUploads', () => {
 
   it('does nothing before any chunked upload', async () => {
     await expect(cleanTempUploads()).resolves.toBeUndefined()
+  })
+})
+
+describe('copyFile', () => {
+  const event = {} as any
+  let cwd: string
+  const privatePath = (path: string) => join(cwd, 'files', 'private', path)
+
+  beforeEach(async () => {
+    session.user = { id: '123' }
+    cwd = await mkdtemp(join(tmpdir(), 'nuxt-base-'))
+    vi.spyOn(process, 'cwd').mockReturnValue(cwd)
+    await mkdir(privatePath('u/123'), { recursive: true })
+    await writeFile(privatePath('u/123/a.txt'), 'hello')
+  })
+
+  afterEach(async () => {
+    vi.restoreAllMocks()
+    await rm(cwd, { recursive: true, force: true })
+  })
+
+  it('leaves a file copied or moved onto itself untouched', async () => {
+    await copyFile(event, 'u/123/a.txt', 'u/123/a.txt')
+    await copyFile(event, 'u/123/a.txt', 'u/123//a.txt/', true, true)
+    expect(await readFile(privatePath('u/123/a.txt'), 'utf8')).toBe('hello')
+  })
+
+  it('moves a file', async () => {
+    await copyFile(event, 'u/123/a.txt', 'u/123/sub/b.txt', true, true)
+    expect(await readFile(privatePath('u/123/sub/b.txt'), 'utf8')).toBe('hello')
+    expect(await readdir(privatePath('u/123'))).toEqual(['sub'])
+  })
+
+  it('rejects a missing source without creating the destination', async () => {
+    await expect(copyFile(event, 'u/123/missing.txt', 'u/123/sub/b.txt')).rejects.toMatchObject({
+      statusCode: 404,
+    })
+    expect(await readdir(privatePath('u/123'))).toEqual(['a.txt'])
   })
 })

@@ -8,6 +8,7 @@ import {
   appendFile,
   rename,
   readFile as fsReadFile,
+  copyFile as fsCopyFile,
 } from 'fs/promises'
 import {
   S3Client,
@@ -443,13 +444,19 @@ export async function copyFile(
   await checkFileAccess(event, dest)
   src = getSecurePath(src, isPrivate)
   dest = getSecurePath(dest, isPrivate)
+  // A copy onto itself would truncate the file, and a move would then delete it
+  if (src === dest) return
 
   if (useS3()) return copyFromS3(src, dest, isPrivate, deleteSrc)
 
   const srcPath = join(process.cwd(), src)
   const destPath = join(process.cwd(), dest)
+  const stats = await stat(srcPath).catch(() => null)
+  if (!stats?.isFile()) {
+    throw createError({ statusCode: 404, message: 'File not found' })
+  }
   await mkdir(dirname(destPath), { recursive: true })
-  await writeFile(destPath, createReadStream(srcPath))
+  await fsCopyFile(srcPath, destPath)
 
   if (deleteSrc) {
     await deletePath(event, removeRoot(src, isPrivate), isPrivate)
