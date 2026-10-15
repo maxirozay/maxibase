@@ -349,7 +349,7 @@ onMounted(async () => {
 
 <style scoped>
 .signin {
-  max-width: min(400px, 80vw);
-  min-width: 300px;
+  box-sizing: border-box;
+  width: min(400px, 100vw - (var(--g-padding-l) + var(--g-padding-r)) * var(--g-padding-ratio2));
 }
 </style>
