@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
       token: z.string().length(6),
     }).parse,
   )
-  if (!email || !(otp || password) || !token) {
+  if (!otp && !password) {
     throw createError({
       status: 400,
       message: 'Missing required fields',

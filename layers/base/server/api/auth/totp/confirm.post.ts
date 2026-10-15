@@ -10,12 +10,6 @@ const bodySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const { secret, token } = await readValidatedBody(event, bodySchema.parse)
-  if (!secret || !token) {
-    throw createError({
-      status: 400,
-      message: 'Missing required fields',
-    })
-  }
 
   const { user } = await requireRecentAuth(event)
 

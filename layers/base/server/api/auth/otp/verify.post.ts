@@ -9,12 +9,6 @@ const bodySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const { email, otp } = await readValidatedBody(event, bodySchema.parse)
-  if (!email || !otp) {
-    throw createError({
-      status: 400,
-      message: 'Email and OTP are required',
-    })
-  }
 
   const existing = await getAuth(event, email, true).catch((error) => {
     if (error.statusCode !== 404) throw error

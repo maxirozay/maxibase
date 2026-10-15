@@ -22,12 +22,6 @@ export default defineEventHandler(async (event) => {
     goto,
     path = 'signin',
   } = await readValidatedBody(event, bodySchema.parse)
-  if (!email || typeof email !== 'string') {
-    throw createError({
-      status: 400,
-      message: 'Email is required',
-    })
-  }
 
   const storage = useStorage('auth')
   const record = await storage.getItem<OTP>(email)
