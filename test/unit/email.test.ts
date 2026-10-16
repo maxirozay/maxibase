@@ -45,6 +45,21 @@ describe('fillTemplate', () => {
     expect(fillTemplate('{{appName}} at {{url}}')).toBe('Test app at https://app.test')
   })
 
+  it('prefixes a logo path with the app url', () => {
+    setConfig({ public: { url: 'https://app.test', logo: '/logo.svg' } })
+    expect(fillTemplate('{{logo}}')).toBe('https://app.test/logo.svg')
+  })
+
+  it('keeps a logo that already has its domain', () => {
+    setConfig({ public: { url: 'https://app.test', logo: 'https://cdn.test/logo.png' } })
+    expect(fillTemplate('{{logo}}')).toBe('https://cdn.test/logo.png')
+  })
+
+  it('leaves an empty logo empty', () => {
+    setConfig({ public: { url: 'https://app.test', logo: '' } })
+    expect(fillTemplate('[{{logo}}]')).toBe('[]')
+  })
+
   it('lets a param override an app placeholder', () => {
     expect(fillTemplate('{{appName}}', { appName: 'White label' })).toBe('White label')
   })

@@ -135,8 +135,8 @@ function inlineStyles(html: string): string {
 }
 
 function appPlaceholders() {
-  const config = useRuntimeConfig()
-  return { appName: config.public.name, url: config.public.url, logo: config.public.logo }
+  const { name, url, logo } = useRuntimeConfig().public
+  return { appName: name, url, logo: logo ? (URL.parse(logo, url)?.href ?? logo) : logo }
 }
 
 // {{value}} is escaped, {{{value}}} is inserted as raw html. Reach for the raw
