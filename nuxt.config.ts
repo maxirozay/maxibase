@@ -23,7 +23,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       url: 'http://localhost:3000',
-      name: 'Nuxt base',
+      name: 'MaxiBase',
       logo: '/logo.svg',
     },
     rateLimit: {
