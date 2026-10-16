@@ -4,6 +4,7 @@ import handler, { verifyOTP } from '#server-api/auth/otp/verify.post'
 import { requireSecondFactor } from '#server-utils/auth'
 import requestHandler, { generateOTP } from '#server-api/auth/otp/get.post'
 import { safePath } from '#shared-utils/url'
+import { otpSchema } from '#server-utils/schemas'
 
 const email = 'user@example.com'
 
@@ -30,6 +31,23 @@ describe('generateOTP', () => {
     for (let i = 0; i < 500; i++) {
       expect(generateOTP()).toMatch(/^[1-9]\d{5}$/)
     }
+  })
+})
+
+describe('otpSchema', () => {
+  it('accepts the code and the token that get.post issues', () => {
+    expect(otpSchema.safeParse(generateOTP()).success).toBe(true)
+    expect(otpSchema.safeParse('a'.repeat(43)).success).toBe(true)
+  })
+
+  // Every accepted value goes through scrypt, so its length has to be bounded.
+  it('refuses a token longer than 64 characters', () => {
+    expect(otpSchema.safeParse('a'.repeat(65)).success).toBe(false)
+  })
+
+  it('refuses anything between a code and a token', () => {
+    expect(otpSchema.safeParse('1234567').success).toBe(false)
+    expect(otpSchema.safeParse('a'.repeat(31)).success).toBe(false)
   })
 })
 

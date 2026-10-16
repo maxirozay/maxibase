@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
     z.object({
       email: emailSchema,
       password: passwordSchema().optional(),
-      otp: z.string().length(6).or(z.string().min(32)).optional(),
+      otp: otpSchema.optional(),
       token: z.string().length(6),
     }).parse,
   )

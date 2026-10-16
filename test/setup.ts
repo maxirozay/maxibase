@@ -1,5 +1,5 @@
 import { vi } from 'vitest'
-import { emailSchema } from '#server-utils/schemas'
+import { emailSchema, otpSchema } from '#server-utils/schemas'
 
 // The layer's server code runs on Nitro's auto-imports, which are plain globals
 // at runtime. These stubs stand in for them so the units under test can be
@@ -52,8 +52,9 @@ class HttpError extends Error {
 }
 
 Object.assign(globalThis, {
-  // Real schema, not a stub: handlers validate against it.
+  // Real schemas, not stubs: handlers validate against them.
   emailSchema,
+  otpSchema,
   useRuntimeConfig: () => config,
   createError: (input: AnyRecord) => new HttpError(input),
   defineEventHandler: (handler: any) => handler,

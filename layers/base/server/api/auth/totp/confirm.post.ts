@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { verify } from 'otplib'
 
 const bodySchema = z.object({
-  secret: z.string().min(32),
+  secret: z.string().min(32).max(64), // generateSecret gives 32 base32 characters
   token: z.string().length(6),
 })
 

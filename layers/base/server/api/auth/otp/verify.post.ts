@@ -4,7 +4,7 @@ import type { OTP } from './get.post'
 
 const bodySchema = z.object({
   email: emailSchema,
-  otp: z.string().length(6).or(z.string().min(32)),
+  otp: otpSchema,
 })
 
 export default defineEventHandler(async (event) => {
