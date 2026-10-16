@@ -1,0 +1,71 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { logSpy, resetTestState, setConfig } from '../setup'
+
+vi.hoisted(() => Object.assign(globalThis, { defineTask: (task: unknown) => task }))
+const { default: task } = (await import('../../layers/base/server/tasks/clean')) as any
+
+const steps = {
+  cleanOldBackups: vi.fn(),
+  cleanOldS3Backups: vi.fn(),
+  cleanLogs: vi.fn(),
+  cleanTempUploads: vi.fn(),
+}
+
+beforeEach(() => {
+  resetTestState()
+  for (const [name, step] of Object.entries(steps)) {
+    step.mockReset()
+    step.mockResolvedValue(undefined)
+    vi.stubGlobal(name, step)
+  }
+})
+
+const withS3 = () => setConfig({ s3: { privateBucket: 'private' } })
+
+describe('clean task', () => {
+  it('cleans the server backups, logs and uploads', async () => {
+    expect(await task.run()).toEqual({ result: { success: true } })
+    expect(steps.cleanOldBackups).toHaveBeenCalledOnce()
+    expect(steps.cleanOldS3Backups).not.toHaveBeenCalled()
+    expect(steps.cleanLogs).toHaveBeenCalledOnce()
+    expect(steps.cleanTempUploads).toHaveBeenCalledOnce()
+    expect(logSpy).not.toHaveBeenCalled()
+  })
+
+  // The backup task keeps its server copy after uploading, so both places are cleaned.
+  it('also cleans the S3 backups with a private bucket', async () => {
+    withS3()
+    await task.run()
+    expect(steps.cleanOldBackups).toHaveBeenCalledOnce()
+    expect(steps.cleanOldS3Backups).toHaveBeenCalledOnce()
+  })
+
+  // Logs hold IP addresses: a missing backups folder must not keep them past
+  // their retention.
+  it('still cleans logs and uploads when the backups fail', async () => {
+    steps.cleanOldBackups.mockRejectedValue(new Error('ENOENT: no such file or directory'))
+    expect(await task.run()).toEqual({ result: { success: false } })
+    expect(steps.cleanLogs).toHaveBeenCalledOnce()
+    expect(steps.cleanTempUploads).toHaveBeenCalledOnce()
+  })
+
+  it('logs each failed step under its own name', async () => {
+    withS3()
+    steps.cleanOldBackups.mockRejectedValue(new Error('no folder'))
+    steps.cleanOldS3Backups.mockRejectedValue(new Error('S3 down'))
+    await task.run()
+    expect(logSpy).toHaveBeenCalledTimes(2)
+    expect(logSpy).toHaveBeenCalledWith(
+      'Cleaning backups failed: no folder',
+      expect.anything(),
+      'clean task',
+      'error',
+    )
+    expect(logSpy).toHaveBeenCalledWith(
+      'Cleaning S3 backups failed: S3 down',
+      expect.anything(),
+      'clean task',
+      'error',
+    )
+  })
+})

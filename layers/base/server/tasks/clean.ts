@@ -6,35 +6,29 @@ export default defineTask({
   async run() {
     const config = useRuntimeConfig()
 
-    try {
-      await cleanOldBackups()
-      if (config.s3.privateBucket) {
-        const backups = await listFromS3('backups', true)
-        const retentionMs = daysToMilliseconds(config.backup.retentionDays)
-        const cutoffDate = new Date(Date.now() - retentionMs)
-        await Promise.all(
-          backups.map((b) => {
-            if (b.updatedAt && b.updatedAt < cutoffDate) {
-              return deleteFromS3(`backups/${b.name}`, true)
-            }
-          }),
-        )
-      }
-      await cleanLogs()
-      await cleanTempUploads()
+    const steps: [string, () => Promise<unknown>][] = [['backups', cleanOldBackups]]
+    if (config.s3.privateBucket) steps.push(['S3 backups', cleanOldS3Backups])
+    steps.push(['logs', cleanLogs], ['uploads', () => cleanTempUploads()])
 
-      return {
-        result: {
-          success: true,
-        },
-      }
-    } catch (error: any) {
-      await log(error.message, { stack: error.stack, cause: error.cause }, 'clean task', 'error')
-      return {
-        result: {
-          success: false,
-        },
-      }
+    const results = await Promise.allSettled(steps.map(([, step]) => step()))
+
+    let success = true
+    for (const [i, result] of results.entries()) {
+      if (result.status === 'fulfilled') continue
+      success = false
+      const error = result.reason
+      await log(
+        `Cleaning ${steps[i]![0]} failed: ${error?.message}`,
+        { stack: error?.stack, cause: error?.cause },
+        'clean task',
+        'error',
+      )
+    }
+
+    return {
+      result: {
+        success,
+      },
     }
   },
 })

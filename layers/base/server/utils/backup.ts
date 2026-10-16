@@ -96,3 +96,17 @@ export async function cleanOldBackups() {
     }),
   )
 }
+
+export async function cleanOldS3Backups() {
+  const config = useRuntimeConfig()
+  const backups = await listFromS3('backups', true)
+  const retentionMs = daysToMilliseconds(config.backup.retentionDays)
+  const cutoffDate = new Date(Date.now() - retentionMs)
+  await Promise.all(
+    backups.map((b) => {
+      if (b.updatedAt && b.updatedAt < cutoffDate) {
+        return deleteFromS3(`backups/${b.name}`, true)
+      }
+    }),
+  )
+}
