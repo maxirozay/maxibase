@@ -1,6 +1,18 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { resetTestState, storage } from '../setup'
-import { buildEmail, buildEmailTemplate, escapeHtml, fillTemplate } from '#server-utils/email'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { resetTestState, setConfig, storage } from '../setup'
+import {
+  buildEmail,
+  buildEmailTemplate,
+  escapeHtml,
+  fillTemplate,
+  sendEmail,
+} from '#server-utils/email'
+
+const { createTransport, sendMail } = vi.hoisted(() => {
+  const sendMail = vi.fn(async (mail: any) => mail)
+  return { sendMail, createTransport: vi.fn(() => ({ sendMail })) }
+})
+vi.mock('nodemailer', () => ({ default: { createTransport } }))
 
 beforeEach(resetTestState)
 
@@ -140,5 +152,62 @@ describe('buildEmailTemplate', () => {
 
   it('throws when no template exists at all', async () => {
     await expect(buildEmailTemplate('nope', 'en')).rejects.toThrow(/Email template not found/)
+  })
+})
+
+describe('sendEmail', () => {
+  const defaultSmtp = {
+    host: 'smtp.default.test',
+    port: 465,
+    user: 'noreply@app.test',
+    pass: 'default-pass',
+    from: 'noreply@app.test',
+  }
+  const orgSmtp = {
+    host: 'smtp.org.test',
+    port: 587,
+    user: 'hello@org.test',
+    pass: 'org-pass',
+    from: 'Org <hello@org.test>',
+  }
+
+  beforeEach(() => {
+    setConfig({ smtp: defaultSmtp })
+    storage.set('assets:server:emails/base.html', '{{content}}')
+    sendMail.mockClear()
+  })
+
+  it('sends with the default config', async () => {
+    await sendEmail('a@b.test', 'Hi', '<p>hi</p>')
+    expect(sendMail).toHaveBeenLastCalledWith(expect.objectContaining({ from: defaultSmtp.from }))
+    expect(createTransport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        host: defaultSmtp.host,
+        auth: { user: defaultSmtp.user, pass: defaultSmtp.pass },
+      }),
+    )
+  })
+
+  // An organization sending from its own address uses its own server and
+  // credentials, and nothing from the default config reaches that server.
+  it('sends with the override in place of the default config', async () => {
+    await sendEmail('a@b.test', 'Hi', '<p>hi</p>', 'en', undefined, undefined, {}, orgSmtp)
+    expect(sendMail).toHaveBeenLastCalledWith(expect.objectContaining({ from: orgSmtp.from }))
+    expect(createTransport).toHaveBeenLastCalledWith({
+      host: orgSmtp.host,
+      port: 587,
+      secure: false,
+      requireTLS: true,
+      pool: true,
+      auth: { user: orgSmtp.user, pass: orgSmtp.pass },
+    })
+  })
+
+  it('reuses the transporter of a config it has already seen', async () => {
+    const override = { ...orgSmtp, user: 'reuse@org.test' }
+    await sendEmail('a@b.test', 'Hi', '<p>hi</p>', 'en', undefined, undefined, {}, override)
+    const created = createTransport.mock.calls.length
+    await sendEmail('a@b.test', 'Hi', '<p>hi</p>', 'en', undefined, undefined, {}, { ...override })
+    expect(createTransport.mock.calls.length).toBe(created)
   })
 })

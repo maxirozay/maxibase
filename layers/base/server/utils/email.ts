@@ -1,23 +1,33 @@
 import nodemailer from 'nodemailer'
 import type { Transporter } from 'nodemailer'
 
-let transporter: Transporter | null = null
+export type SmtpConfig = {
+  host: string
+  port: number | string
+  user: string
+  pass: string
+  from: string
+}
 
-function useTransporter() {
-  const config = useRuntimeConfig()
+const transporters = new Map<string, Transporter>()
+
+function useTransporter(smtp: SmtpConfig) {
+  const key = JSON.stringify([smtp.host, smtp.port, smtp.user, smtp.pass])
+  let transporter = transporters.get(key)
   if (!transporter) {
-    const port = Number(config.smtp.port)
+    const port = Number(smtp.port)
     transporter = nodemailer.createTransport({
-      host: config.smtp.host,
+      host: smtp.host,
       port,
       secure: port === 465,
       requireTLS: port !== 465,
       pool: true,
       auth: {
-        user: config.smtp.user,
-        pass: config.smtp.pass,
+        user: smtp.user,
+        pass: smtp.pass,
       },
     })
+    transporters.set(key, transporter)
   }
   return transporter
 }
@@ -39,10 +49,11 @@ export async function sendEmail(
   attachments?: any[],
   bcc?: string,
   params = {},
+  smtp?: SmtpConfig,
 ) {
-  const config = useRuntimeConfig()
-  const mail = await useTransporter().sendMail({
-    from: config.smtp.from,
+  const config = smtp ?? (useRuntimeConfig().smtp as SmtpConfig)
+  const mail = await useTransporter(config).sendMail({
+    from: config.from,
     to,
     bcc,
     subject: fillTemplate(subject, params, false),
@@ -73,9 +84,10 @@ export async function sendEmailTemplate(
   to: string,
   attachments?: any[],
   bcc?: string,
+  smtp?: SmtpConfig,
 ) {
   const { subject, html } = await buildEmailTemplate(templateId, locale)
-  return sendEmail(to, subject, html, locale, attachments, bcc, params)
+  return sendEmail(to, subject, html, locale, attachments, bcc, params, smtp)
 }
 
 export async function buildEmailTemplate(templateId: string, locale: string = 'en') {
