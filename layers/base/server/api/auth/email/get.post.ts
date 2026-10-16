@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
   })
 
   try {
-    return await sendEmailTemplate('emailChange', locale, { otp }, email)
+    await sendEmailTemplate('emailChange', locale, { otp }, email)
   } catch (error) {
     await storage.removeItem(key)
     throw createError({

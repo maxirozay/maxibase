@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
   })
 
   try {
-    return await sendEmailTemplate(
+    await sendEmailTemplate(
       'otp',
       locale,
       {

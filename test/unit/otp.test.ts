@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { resetTestState, setConfig, storage } from '../setup'
 import handler, { verifyOTP } from '#server-api/auth/otp/verify.post'
 import { requireSecondFactor } from '#server-utils/auth'
-import { generateOTP } from '#server-api/auth/otp/get.post'
+import requestHandler, { generateOTP } from '#server-api/auth/otp/get.post'
+import { safePath } from '#shared-utils/url'
 
 const email = 'user@example.com'
 
@@ -153,5 +154,29 @@ describe('POST /api/auth/otp/verify', () => {
     await verify()
     expect(createAuth).toHaveBeenCalledWith({ email })
     expect(setSession).toHaveBeenCalledOnce()
+  })
+})
+
+describe('POST /api/auth/otp/get', () => {
+  const sendEmailTemplate = vi.fn(async () => ({
+    messageId: '<id@smtp.test>',
+    response: '250 2.0.0 Ok: queued as ABC123',
+    envelope: { from: 'noreply@app.test', to: [email] },
+  }))
+
+  beforeEach(() => {
+    sendEmailTemplate.mockClear()
+    vi.stubGlobal('sendEmailTemplate', sendEmailTemplate)
+    vi.stubGlobal('safePath', safePath)
+  })
+
+  afterEach(() => vi.unstubAllGlobals())
+
+  // The SMTP result names the mail server and its replies, which with an
+  // organization's own server is not ours to hand to whoever asks for a code.
+  it('sends the code without returning the SMTP result', async () => {
+    const result = await requestHandler({ body: { email } } as any)
+    expect(sendEmailTemplate).toHaveBeenCalledOnce()
+    expect(result).toBeUndefined()
   })
 })
