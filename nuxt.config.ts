@@ -13,7 +13,10 @@ export default defineNuxtConfig({
         lang: 'en',
       },
       title: process.env.NUXT_PUBLIC_NAME,
-      link: [{ rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
+      link: [
+        { rel: 'icon', href: '/favicon.ico', sizes: '32x32' },
+        { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' },
+      ],
       meta: [{ name: 'theme-color', content: '#000000' }],
     },
   },
