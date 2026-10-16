@@ -49,6 +49,7 @@ export async function sendEmail(
   attachments?: any[],
   bcc?: string,
   params = {},
+  replyTo?: string,
   smtp?: SmtpConfig,
 ) {
   const config = smtp ?? (useRuntimeConfig().smtp as SmtpConfig)
@@ -56,6 +57,7 @@ export async function sendEmail(
     from: config.from,
     to,
     bcc,
+    replyTo,
     subject: fillTemplate(subject, params, false),
     html: await buildEmail(html, locale, params),
     attachments,
@@ -84,10 +86,11 @@ export async function sendEmailTemplate(
   to: string,
   attachments?: any[],
   bcc?: string,
+  replyTo?: string,
   smtp?: SmtpConfig,
 ) {
   const { subject, html } = await buildEmailTemplate(templateId, locale)
-  return sendEmail(to, subject, html, locale, attachments, bcc, params, smtp)
+  return sendEmail(to, subject, html, locale, attachments, bcc, params, replyTo, smtp)
 }
 
 export async function buildEmailTemplate(templateId: string, locale: string = 'en') {

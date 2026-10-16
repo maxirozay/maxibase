@@ -6,6 +6,7 @@ import {
   escapeHtml,
   fillTemplate,
   sendEmail,
+  sendEmailTemplate,
 } from '#server-utils/email'
 
 const { createTransport, sendMail } = vi.hoisted(() => {
@@ -191,7 +192,17 @@ describe('sendEmail', () => {
   // An organization sending from its own address uses its own server and
   // credentials, and nothing from the default config reaches that server.
   it('sends with the override in place of the default config', async () => {
-    await sendEmail('a@b.test', 'Hi', '<p>hi</p>', 'en', undefined, undefined, {}, orgSmtp)
+    await sendEmail(
+      'a@b.test',
+      'Hi',
+      '<p>hi</p>',
+      'en',
+      undefined,
+      undefined,
+      {},
+      undefined,
+      orgSmtp,
+    )
     expect(sendMail).toHaveBeenLastCalledWith(expect.objectContaining({ from: orgSmtp.from }))
     expect(createTransport).toHaveBeenLastCalledWith({
       host: orgSmtp.host,
@@ -205,9 +216,52 @@ describe('sendEmail', () => {
 
   it('reuses the transporter of a config it has already seen', async () => {
     const override = { ...orgSmtp, user: 'reuse@org.test' }
-    await sendEmail('a@b.test', 'Hi', '<p>hi</p>', 'en', undefined, undefined, {}, override)
+    await sendEmail(
+      'a@b.test',
+      'Hi',
+      '<p>hi</p>',
+      'en',
+      undefined,
+      undefined,
+      {},
+      undefined,
+      override,
+    )
     const created = createTransport.mock.calls.length
-    await sendEmail('a@b.test', 'Hi', '<p>hi</p>', 'en', undefined, undefined, {}, { ...override })
+    await sendEmail('a@b.test', 'Hi', '<p>hi</p>', 'en', undefined, undefined, {}, undefined, {
+      ...override,
+    })
     expect(createTransport.mock.calls.length).toBe(created)
+  })
+
+  // An organization without its own server still sends from the app's address,
+  // which keeps SPF and DKIM aligned, and gets the replies.
+  it('sets the reply-to on the default config', async () => {
+    await sendEmail('a@b.test', 'Hi', '<p>hi</p>', 'en', undefined, undefined, {}, orgSmtp.user)
+    expect(sendMail).toHaveBeenLastCalledWith(
+      expect.objectContaining({ from: defaultSmtp.from, replyTo: orgSmtp.user }),
+    )
+  })
+
+  it('passes the reply-to and the override through a template', async () => {
+    storage.set('assets:server:emails/en/test.html', '<title>Hi</title><p>hi</p>')
+    await sendEmailTemplate(
+      'test',
+      'en',
+      {},
+      'a@b.test',
+      undefined,
+      undefined,
+      'reply@org.test',
+      orgSmtp,
+    )
+    expect(sendMail).toHaveBeenLastCalledWith(
+      expect.objectContaining({ from: orgSmtp.from, replyTo: 'reply@org.test' }),
+    )
+  })
+
+  it('sends no reply-to unless asked', async () => {
+    await sendEmail('a@b.test', 'Hi', '<p>hi</p>')
+    expect(sendMail.mock.lastCall?.[0].replyTo).toBeUndefined()
   })
 })
