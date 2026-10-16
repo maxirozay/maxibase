@@ -13,7 +13,7 @@ export default defineNuxtConfig({
         lang: 'en',
       },
       title: process.env.NUXT_PUBLIC_NAME,
-      link: [],
+      link: [{ rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
       meta: [{ name: 'theme-color', content: '#000000' }],
     },
   },
@@ -21,7 +21,7 @@ export default defineNuxtConfig({
     public: {
       url: 'http://localhost:3000',
       name: 'Nuxt base',
-      logo: 'https://placehold.co/200x100?text=logo',
+      logo: '/logo.svg',
     },
     rateLimit: {
       routes: {

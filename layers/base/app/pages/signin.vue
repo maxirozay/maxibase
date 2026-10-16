@@ -56,7 +56,7 @@ async function signInAnonymously() {
         :src="config.public.logo"
         :alt="config.public.name"
         height="42"
-        class="fg"
+        style="display: block"
       />
       <span v-else>{{ config.public.name }}</span>
     </I18nLink>

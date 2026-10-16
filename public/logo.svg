@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -3.04 16 16">
+  <style>
+    path { stroke: #000; }
+    @media (prefers-color-scheme: dark) {
+      path { stroke: #fff; }
+    }
+  </style>
+  <clipPath id="circle">
+    <circle cx="8" cy="8" r="8" />
+  </clipPath>
+  <path
+    d="M1.25 8A6.75 6.75 0 0 1 4.62 2.15L8 5L11.38 2.15A6.75 6.75 0 0 1 14.75 8M0 8H16"
+    fill="none"
+    stroke-width="2.5"
+    stroke-miterlimit="10"
+    clip-path="url(#circle)"
+  />
+</svg>
