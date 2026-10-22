@@ -93,7 +93,9 @@ export default defineNuxtConfig({
     },
     storage: {
       auth: {
-        driver: 'memory',
+        driver: 'lru-cache',
+        max: 10_000,
+        ttl: 10 * 60 * 1000,
       },
     },
     serverAssets: [
