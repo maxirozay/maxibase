@@ -563,17 +563,22 @@ export const useS3 = () => {
   return s3Client
 }
 
+function defaultCacheControl(isPrivate: boolean) {
+  return isPrivate ? 'private, max-age=3600' : 'public, max-age=31536000'
+}
+
 export async function uploadToS3(
   key: string,
   body: Buffer,
   contentType: string,
-  cache = 'public, max-age=31536000',
+  cache?: string,
   isPrivate = true,
 ) {
   const client = useS3()
   if (!client) return null
 
   const config = useRuntimeConfig()
+  cache ||= defaultCacheControl(isPrivate)
 
   if (isPrivate) {
     await client.send(
@@ -582,7 +587,7 @@ export async function uploadToS3(
         Key: key,
         Body: body,
         ContentType: contentType,
-        CacheControl: cache || 'public, max-age=31536000',
+        CacheControl: cache,
       }),
     )
 
@@ -594,7 +599,7 @@ export async function uploadToS3(
       Key: key,
       Body: body,
       ContentType: contentType,
-      CacheControl: cache || 'public, max-age=31536000',
+      CacheControl: cache,
       ACL: 'public-read',
     }),
   )
@@ -606,13 +611,14 @@ export async function uploadStreamToS3(
   key: string,
   body: Readable,
   contentType: string,
-  cache = 'public, max-age=31536000',
+  cache?: string,
   isPrivate = true,
 ) {
   const client = useS3()
   if (!client) return null
 
   const config = useRuntimeConfig()
+  cache ||= defaultCacheControl(isPrivate)
   const partSize = 5 * 1024 * 1024 // S3 minimum, only the last part may be smaller
 
   let uploadId: string | undefined
@@ -680,7 +686,7 @@ export async function initMultipartUploadToS3(
     Bucket: isPrivate ? config.s3.privateBucket : config.s3.publicBucket,
     Key: key,
     ContentType: contentType,
-    CacheControl: cache,
+    CacheControl: cache || defaultCacheControl(isPrivate),
     ACL: isPrivate ? undefined : 'public-read',
   })
 
