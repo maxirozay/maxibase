@@ -9,7 +9,18 @@ beforeEach(resetTestState)
 describe('POST /api/log', () => {
   it('records what the client reported', async () => {
     await call({ summary: 'boom', type: 'error', origin: 'app.vue' })
-    expect(logSpy).toHaveBeenCalledWith('boom', undefined, 'app.vue', 'error', expect.anything())
+    expect(logSpy).toHaveBeenCalledWith(
+      'boom',
+      undefined,
+      'client app.vue',
+      'error',
+      expect.anything(),
+    )
+  })
+
+  it('marks the origin as client even when none is sent', async () => {
+    await call({ summary: 'x' })
+    expect(logSpy.mock.calls[0]?.[2]).toBe('client')
   })
 
   // The endpoint is unauthenticated, so a client must not be able to forge rows

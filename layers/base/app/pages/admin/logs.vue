@@ -70,8 +70,8 @@ function formatDay(utcTimestamp: string) {
 }
 
 function originUrl(origin: string | null) {
-  const url = origin?.replace(/ .*/, '')
-  return url?.startsWith('/') || url?.startsWith('http') ? url : null
+  const url = origin?.replace(/^client /, '').replace(/ .*/, '')
+  return url && /^\/(?![/\\])/.test(url) ? url : null
 }
 
 function toggleExpanded(id: number, isOpen: boolean) {
