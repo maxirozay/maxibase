@@ -1,4 +1,5 @@
 import type { H3Event } from 'h3'
+import { isIPv6 } from 'node:net'
 
 export interface RateLimitRule {
   limit: number // max requests per window
@@ -24,7 +25,31 @@ setInterval(() => {
 async function getId(event: H3Event): Promise<string> {
   const { user } = await getUserSession(event)
   if (user) return user.id
-  return getClientIP(event)
+  return rateLimitIP(getClientIP(event))
+}
+
+// An IPv6 client usually holds a whole /64, so counting single addresses would let it rotate
+// through 2^64 of them. Count the /64 instead, and IPv4-mapped addresses as their IPv4.
+export function rateLimitIP(ip: string): string {
+  const address = ip.split('%')[0]!.toLowerCase() // drop the zone id
+  if (!isIPv6(address)) return ip
+
+  const mapped = address.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/)
+  if (mapped) return mapped[1]!
+
+  // an embedded IPv4 tail fills the last two groups
+  const toGroups = (part: string) =>
+    part ? part.split(':').flatMap((group) => (group.includes('.') ? ['0', '0'] : [group])) : []
+  const [head = '', tail] = address.split('::')
+  let groups = toGroups(head)
+  if (tail !== undefined) {
+    const tailGroups = toGroups(tail)
+    groups = [...groups, ...Array(8 - groups.length - tailGroups.length).fill('0'), ...tailGroups]
+  }
+  return `${groups
+    .slice(0, 4)
+    .map((group) => parseInt(group, 16).toString(16))
+    .join(':')}::/64`
 }
 
 export async function enforceRateLimit(

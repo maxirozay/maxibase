@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { resetTestState, logSpy, session, config } from '../setup'
-import { enforceRateLimit } from '#server-utils/rateLimit'
+import { enforceRateLimit, rateLimitIP } from '#server-utils/rateLimit'
 
 const rule = { limit: 3, window: 60 }
 const event = { ip: '203.0.113.1' } as any
@@ -76,6 +76,23 @@ describe('enforceRateLimit', () => {
     await expect(enforceRateLimit({ ip: '198.51.100.7' }, route, rule)).resolves.toBeUndefined()
   })
 
+  it('counts every address of an IPv6 /64 together', async () => {
+    const route = nextRoute()
+    await hit(route, rule.limit, { ip: '2001:db8:1:2::1' })
+    await expect(
+      enforceRateLimit({ ip: '2001:db8:1:2:ffff:ffff:ffff:ffff' }, route, rule),
+    ).rejects.toMatchObject({ statusCode: 429 })
+    await expect(enforceRateLimit({ ip: '2001:db8:1:3::1' }, route, rule)).resolves.toBeUndefined()
+  })
+
+  it('counts an IPv4-mapped address as its IPv4', async () => {
+    const route = nextRoute()
+    await hit(route, rule.limit, { ip: '::ffff:203.0.113.9' })
+    await expect(enforceRateLimit({ ip: '203.0.113.9' }, route, rule)).rejects.toMatchObject({
+      statusCode: 429,
+    })
+  })
+
   it('counts a signed-in user by id, not by IP', async () => {
     const route = nextRoute()
     session.user = { id: 'user-1' }
@@ -84,5 +101,21 @@ describe('enforceRateLimit', () => {
     await expect(enforceRateLimit({ ip: '198.51.100.7' }, route, rule)).rejects.toMatchObject({
       statusCode: 429,
     })
+  })
+})
+
+describe('rateLimitIP', () => {
+  it.each([
+    ['203.0.113.1', '203.0.113.1'],
+    ['::ffff:203.0.113.1', '203.0.113.1'],
+    ['2001:db8:1:2:3:4:5:6', '2001:db8:1:2::/64'],
+    ['2001:DB8:0001:0002::1', '2001:db8:1:2::/64'],
+    ['2001:db8::1', '2001:db8:0:0::/64'],
+    ['::1', '0:0:0:0::/64'],
+    ['fe80::1%eth0', 'fe80:0:0:0::/64'],
+    ['64:ff9b::192.0.2.1', '64:ff9b:0:0::/64'],
+    ['unknown', 'unknown'],
+  ])('maps %s to %s', (ip, expected) => {
+    expect(rateLimitIP(ip)).toBe(expected)
   })
 })
