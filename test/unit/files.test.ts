@@ -15,6 +15,7 @@ import {
   deletePath,
   cleanFilename,
   getCacheControl,
+  getFile,
   parseMaxAge,
 } from '#server-utils/files'
 import { parseParts } from '#server-api/files/chunk.post'
@@ -362,5 +363,41 @@ describe('copyFile and deletePath', () => {
       statusCode: 404,
     })
     expect(await readdir(privatePath('u/123'))).toEqual(['a.txt'])
+  })
+})
+
+describe('getFile', () => {
+  const event = {} as any
+  const setHeader = vi.mocked((globalThis as any).setHeader)
+  let cwd: string
+
+  beforeEach(async () => {
+    session.user = { id: '123' }
+    cwd = await mkdtemp(join(tmpdir(), 'nuxt-base-'))
+    vi.spyOn(process, 'cwd').mockReturnValue(cwd)
+    await mkdir(join(cwd, 'files', 'private', 'u/123'), { recursive: true })
+    for (const name of ['report.pdf', 'notes']) {
+      await writeFile(join(cwd, 'files', 'private', 'u/123', name), 'hello')
+    }
+    setHeader.mockClear()
+  })
+
+  afterEach(async () => {
+    vi.restoreAllMocks()
+    await rm(cwd, { recursive: true, force: true })
+  })
+
+  const contentType = async (path: string) => {
+    const stream: any = await getFile(event, path, true)
+    stream.destroy()
+    return setHeader.mock.calls.find(([, name]) => name === 'Content-Type')?.[2]
+  }
+
+  it('serves a local file with the type of its extension', async () => {
+    expect(await contentType('u/123/report.pdf')).toBe('application/pdf')
+  })
+
+  it('falls back to a download type without a known extension', async () => {
+    expect(await contentType('u/123/notes')).toBe('application/octet-stream')
   })
 })

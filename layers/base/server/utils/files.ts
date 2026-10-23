@@ -32,6 +32,7 @@ import { pipeline } from 'stream/promises'
 import type { Readable } from 'stream'
 import type { H3Event, MultiPartData } from 'h3'
 import { createHash } from 'crypto'
+import mime from 'mime'
 
 const MB = 1024 * 1024
 
@@ -363,6 +364,7 @@ export async function getFile(
     throw createError({ statusCode: 404, message: 'File not found' })
   }
 
+  setHeader(event, 'Content-Type', mime.getType(fullPath) || 'application/octet-stream')
   setHeader(event, 'Accept-Ranges', 'bytes')
 
   const parsedRange = parseRangeHeader(range, stats.size)
