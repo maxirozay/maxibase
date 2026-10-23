@@ -12,6 +12,8 @@ import {
   uploadChunk,
   cleanTempUploads,
   copyFile,
+  copyFiles,
+  listFolder,
   deletePath,
   cleanFilename,
   getCacheControl,
@@ -323,6 +325,29 @@ describe('copyFile and deletePath', () => {
     await copyFile(event, 'u/123/a.txt', 'u/123/sub/b.txt', true, true)
     expect(await readFile(privatePath('u/123/sub/b.txt'), 'utf8')).toBe('hello')
     expect(await readdir(privatePath('u/123'))).toEqual(['sub'])
+  })
+
+  it('copies a folder whose name has a dot', async () => {
+    await mkdir(privatePath('u/123/v1.2'))
+    await writeFile(privatePath('u/123/v1.2/b.txt'), 'nested')
+    await copyFiles(event, 'u/123/v1.2', 'u/123/v1.3')
+    expect(await readFile(privatePath('u/123/v1.3/b.txt'), 'utf8')).toBe('nested')
+  })
+
+  it('copies a single file through copyFiles', async () => {
+    await copyFiles(event, 'u/123/a.txt', 'u/123/b.txt')
+    expect(await readFile(privatePath('u/123/b.txt'), 'utf8')).toBe('hello')
+  })
+
+  it('rejects copying a source that does not exist', async () => {
+    await expect(copyFiles(event, 'u/123/missing', 'u/123/b')).rejects.toMatchObject({
+      statusCode: 404,
+    })
+  })
+
+  it('lists a path naming a file as that file alone', async () => {
+    const files = await listFolder(event, 'u/123/a.txt')
+    expect(files.map((file) => file.path)).toEqual(['u/123/a.txt'])
   })
 
   it('refuses to delete the root folder', async () => {

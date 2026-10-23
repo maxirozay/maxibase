@@ -5,18 +5,10 @@ const bodySchema = z.object({
   dest: z.string().min(1),
   isPrivate: z.boolean().optional(),
   deleteSrc: z.boolean().optional(),
-  isFolder: z.boolean().optional(),
 })
 
 export default defineEventHandler(async (event) => {
-  const {
-    src,
-    dest,
-    isPrivate,
-    deleteSrc,
-    isFolder = !src.includes('.'),
-  } = await readValidatedBody(event, bodySchema.parse)
-  if (isFolder) await copyFiles(event, src, dest, isPrivate, deleteSrc)
-  else await copyFile(event, src, dest, isPrivate, deleteSrc)
+  const { src, dest, isPrivate, deleteSrc } = await readValidatedBody(event, bodySchema.parse)
+  await copyFiles(event, src, dest, isPrivate, deleteSrc)
   return { success: true }
 })

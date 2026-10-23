@@ -428,27 +428,26 @@ export async function listFolder(
   path = getSecurePath(path, isPrivate)
 
   if (useS3()) return await listFromS3(path, isPrivate)
+  return listLocal(path, isPrivate)
+}
+
+async function listLocal(path: string, isPrivate: boolean): Promise<ListedFile[]> {
   const localPath = join(process.cwd(), path)
-  const filesStats = await readdir(localPath).catch(() => [])
-  return (
-    await Promise.all(
-      filesStats.map(async (name) => {
-        const localeFilePath = join(localPath, name)
-        const stats = await stat(localeFilePath)
-        const rootedPath = join(path, name)
-        const filePath = removeRoot(rootedPath, isPrivate)
-        return stats.isDirectory()
-          ? await listFolder(event, filePath, isPrivate)
-          : {
-              name,
-              size: stats.size,
-              updatedAt: stats.mtime,
-              path: filePath,
-              url: getFileURL(rootedPath, isPrivate),
-            }
-      }),
-    )
-  ).flat()
+  const stats = await stat(localPath).catch(() => null)
+  if (stats?.isFile()) {
+    return [
+      {
+        name: basename(path),
+        size: stats.size,
+        updatedAt: stats.mtime,
+        path: removeRoot(path, isPrivate),
+        url: getFileURL(path, isPrivate),
+      },
+    ]
+  }
+  if (!stats?.isDirectory()) return []
+  const names = await readdir(localPath)
+  return (await Promise.all(names.map((name) => listLocal(join(path, name), isPrivate)))).flat()
 }
 
 export async function copyFile(
@@ -489,6 +488,7 @@ export async function copyFiles(
   deleteSrc = false,
 ) {
   const files = await listFolder(event, src, isPrivate)
+  if (!files.length) throw createError({ statusCode: 404, message: 'File not found' })
   const normalizedSrc = removeRoot(getSecurePath(src, isPrivate), isPrivate)
   const normalizedDest = removeRoot(getSecurePath(dest, isPrivate), isPrivate)
   return Promise.all(
