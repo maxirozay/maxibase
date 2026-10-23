@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { WebAuthnAbortService } from '@simplewebauthn/browser'
+
 const emits = defineEmits(['authenticated', 'cancel'])
 const appStore = useAppStore()
 const { $t } = useI18n()
@@ -133,17 +135,23 @@ function signIn() {
   }, 100)
 }
 
-const { authenticate } = useWebAuthn({
+const webAuthnEndpoints = {
   registerEndpoint: '/api/auth/webauthn/register',
   authenticateEndpoint: '/api/auth/webauthn/authenticate',
+}
+const { authenticate } = useWebAuthn(webAuthnEndpoints)
+const { authenticate: authenticateWithAutofill, isAutofillSupported } = useWebAuthn({
+  ...webAuthnEndpoints,
+  useBrowserAutofill: true,
 })
 
-async function signInWithPasskey() {
+async function signInWithPasskey(userName?: string, autofill = false) {
   try {
-    await authenticate(email.value)
+    await (autofill ? authenticateWithAutofill() : authenticate(userName))
     await refreshSession()
   } catch (e: any) {
-    if (!e.message.startsWith('The operation either timed out')) {
+    // any other passkey prompt aborts the pending autofill request
+    if (e.name !== 'AbortError' && !e.message.startsWith('The operation either timed out')) {
       handleError(e)
     }
   }
@@ -160,7 +168,7 @@ async function getSignInOptions(email: string) {
       password.value = route.query.token as string
       if (!options.value.hasTOTP) await signInWithOtp()
     } else if (options.value.hasPasskey) {
-      await signInWithPasskey()
+      await signInWithPasskey(email)
     } else if (!options.value.hasPassword) {
       await requestOtp()
     }
@@ -187,8 +195,12 @@ onMounted(async () => {
   email.value = user.value?.email || (route.query.email as string) || ''
   if (email.value) {
     await getSignInOptions(email.value)
+  } else if (await isAutofillSupported()) {
+    signInWithPasskey(undefined, true)
   }
 })
+
+onBeforeUnmount(() => WebAuthnAbortService.cancelCeremony())
 </script>
 
 <template>
@@ -286,8 +298,9 @@ onMounted(async () => {
           type="button"
           :disabled="isLoading"
           class="flex-center g1 w mt1 bg bg-border"
-          @click="signInWithPasskey"
+          @click="signInWithPasskey(email)"
         >
+          <Icon name="lucide:key-round" />
           {{ $t('authCheck.passkey') }}
         </button>
         <button
@@ -319,7 +332,7 @@ onMounted(async () => {
             type="email"
             required
             :disabled="isLoading"
-            autocomplete="username"
+            autocomplete="username webauthn"
           />
         </label>
         <button
@@ -329,10 +342,23 @@ onMounted(async () => {
           {{ $t('continue') }}
         </button>
       </form>
-      <slot
+      <div
         v-if="!optionsFetched"
-        name="footer"
-      ></slot>
+        class="flex-column"
+      >
+        <span class="text-center muted-text my1">{{ $t('or') }}</span>
+        <button
+          type="button"
+          :disabled="isLoading"
+          class="provider flex-center g2 w mb1 fg b"
+          style="font-weight: normal"
+          @click="signInWithPasskey()"
+        >
+          <Icon name="lucide:key-round" />
+          {{ $t('authCheck.passkey') }}
+        </button>
+        <slot name="footer"></slot>
+      </div>
       <button
         v-if="appStore.authPromise"
         type="button"
@@ -351,5 +377,19 @@ onMounted(async () => {
 .signin {
   box-sizing: border-box;
   width: min(400px, 100vw - (var(--g-padding-l) + var(--g-padding-r)) * var(--g-padding-ratio2));
+}
+
+.provider,
+:slotted(.provider) {
+  height: 40px;
+  border-radius: var(--g-border-radius);
+  font-size: 14px;
+  color: inherit;
+}
+
+.provider > :is(img, .iconify),
+:slotted(.provider) > :is(img, .iconify) {
+  width: 20px;
+  height: 20px;
 }
 </style>

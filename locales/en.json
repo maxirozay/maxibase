@@ -15,6 +15,7 @@
   "fileTooLarge": "Too large, max {max} MB: {files}",
   "formatFailed": "Could not format or upload {files}",
   "language": "Language | Languages",
+  "or": "or",
   "paste": "Paste",
   "rename": "Rename",
   "retry": "Retry",

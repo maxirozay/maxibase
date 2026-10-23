@@ -15,6 +15,7 @@
   "fileTooLarge": "Trop volumineux, max {max} Mo : {files}",
   "formatFailed": "Impossible de formater ou téléverser {files}",
   "language": "Langue | Langues",
+  "or": "ou",
   "paste": "Coller",
   "rename": "Renommer",
   "retry": "Réessayer",

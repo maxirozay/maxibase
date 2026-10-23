@@ -71,7 +71,6 @@ async function signInAnonymously() {
         v-if="config.public.oauth.microsoft || config.public.anonymousSignup"
         class="flex-column"
       >
-        <span class="text-center muted-text my1">{{ $t('or') }}</span>
         <a
           v-if="config.public.oauth.microsoft"
           href="/auth/microsoft"
@@ -80,8 +79,6 @@ async function signInAnonymously() {
           <img
             src="/images/auth/microsoft.svg"
             alt=""
-            width="21"
-            height="21"
           />
           {{ $t('signinWith') }} Microsoft
         </a>
@@ -110,12 +107,5 @@ async function signInAnonymously() {
 .page {
   box-shadow: inset 0 0 40vh var(--g-fg);
   height: 100dvh;
-}
-
-.provider {
-  height: 40px;
-  border-radius: var(--g-border-radius);
-  font-size: 14px;
-  color: inherit;
 }
 </style>

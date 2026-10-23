@@ -388,7 +388,7 @@ onMounted(getAuth)
                   required
                 />
                 <button
-                  class="flex fg"
+                  class="flex-center fg"
                   type="button"
                   @click="showPassword2 = !showPassword2"
                 >
