@@ -11,5 +11,5 @@ export function getClientIP(event: H3Event): string {
     if (clientIP) return clientIP
   }
 
-  return event.node.req.socket?.remoteAddress || 'unknown'
+  return getRequestIP(event) || 'unknown'
 }
