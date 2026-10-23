@@ -611,7 +611,7 @@ export async function uploadToS3(
       }),
     )
 
-    return getS3SignedUrl(key)
+    return getFileURL(key)
   }
   await client.send(
     new PutObjectCommand({
@@ -760,7 +760,7 @@ export async function completeMultipartUploadToS3(
   })
 
   await client.send(command)
-  return isPrivate ? getS3SignedUrl(key) : getS3URL(key)
+  return isPrivate ? getFileURL(key) : getS3URL(key)
 }
 
 export async function deleteFromS3(path: string, isPrivate = true) {
@@ -826,17 +826,15 @@ export async function listFromS3(path: string, isPrivate = true) {
     )
     ContinuationToken = response.NextContinuationToken
     files.push(
-      ...(await Promise.all(
-        (response.Contents || [])
-          .filter((item) => item.Key === path || item.Key?.startsWith(`${path}/`))
-          .map(async (item) => ({
-            path: removeRoot(item.Key || '', isPrivate),
-            name: item.Key?.split('/').pop() || '',
-            url: isPrivate ? await getS3SignedUrl(item.Key || '') : getS3URL(item.Key || ''),
-            updatedAt: item.LastModified ?? new Date(0),
-            size: item.Size || 0,
-          })),
-      )),
+      ...(response.Contents || [])
+        .filter((item) => item.Key === path || item.Key?.startsWith(`${path}/`))
+        .map((item) => ({
+          path: removeRoot(item.Key || '', isPrivate),
+          name: item.Key?.split('/').pop() || '',
+          url: isPrivate ? getFileURL(item.Key || '') : getS3URL(item.Key || ''),
+          updatedAt: item.LastModified ?? new Date(0),
+          size: item.Size || 0,
+        })),
     )
   } while (ContinuationToken)
 
