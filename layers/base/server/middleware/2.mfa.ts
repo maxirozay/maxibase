@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
 
   const path = event.path.split('?')[0]!
   if (path.startsWith('/api/auth/otp/') || path === '/api/auth/password') return // re-authentication
-  if (ENROLLMENT_ROUTES.includes(path) && !(path === '/api/auth' && event.method !== 'GET')) return
+  if (ENROLLMENT_ROUTES.includes(path) && !(path === '/api/auth' && !isMethod(event, 'GET'))) return
 
   throw createError({ status: 403, message: 'MFA setup required' })
 })
