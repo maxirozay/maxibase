@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const templateId = event.context.params?.template || ''
+  const templateId = getRouterParam(event, 'template') || ''
   const query = getQuery(event)
   const locale = (query.locale as string) || 'en'
 
