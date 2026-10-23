@@ -10,6 +10,7 @@ import {
   parseRangeHeader,
   getFileURL,
   uploadChunk,
+  uploadFile,
   cleanTempUploads,
   copyFile,
   copyFiles,
@@ -364,6 +365,18 @@ describe('copyFile and deletePath', () => {
   it('deletes a file and its emptied folders', async () => {
     await deletePath(event, 'u/123/a.txt')
     expect(await readdir(join(cwd, 'files', 'private'))).toEqual([])
+  })
+
+  it('stores an upload at a path that looks like a file', async () => {
+    const file = { name: 'file', filename: 'photo.jpg', data: Buffer.from('img') }
+    await uploadFile(event, file, 'u/123/avatar.png')
+    expect(await readFile(privatePath('u/123/avatar.png'), 'utf8')).toBe('img')
+  })
+
+  it('stores an upload inside a folder with a dot when the path ends with a slash', async () => {
+    const file = { name: 'file', filename: 'b.txt', data: Buffer.from('nested') }
+    await uploadFile(event, file, 'u/123/v1.2/')
+    expect(await readFile(privatePath('u/123/v1.2/b.txt'), 'utf8')).toBe('nested')
   })
 
   it('stores an upload under its cleaned name', async () => {

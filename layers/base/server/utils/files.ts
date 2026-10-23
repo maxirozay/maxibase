@@ -57,8 +57,7 @@ export async function uploadFile(
   maxAge?: number, // only stored on S3 objects, local files get their headers from nginx
 ) {
   await checkFileAccess(event, path)
-  path = getSecurePath(path, isPrivate)
-  path = appendFilename(path, file.filename)
+  path = getUploadPath(path, isPrivate, file.filename)
 
   let url
   if (useS3()) {
@@ -90,8 +89,7 @@ export async function uploadStream(
   maxAge?: number,
 ) {
   await checkFileAccess(event, path)
-  path = getSecurePath(path, isPrivate)
-  path = appendFilename(path, file.filename)
+  path = getUploadPath(path, isPrivate, file.filename)
 
   if (useS3()) {
     return uploadStreamToS3(
@@ -160,8 +158,7 @@ export async function uploadChunk(
   }
 
   await checkFileAccess(event, path)
-  path = getSecurePath(path, isPrivate)
-  path = appendFilename(path, filename)
+  path = getUploadPath(path, isPrivate, filename)
 
   if (useS3()) {
     if (!uploadId) {
@@ -525,11 +522,13 @@ function invalidPath() {
   return createError({ statusCode: 400, message: 'Invalid path' })
 }
 
-function appendFilename(path: string, filename?: string) {
+function getUploadPath(path: string, isPrivate: boolean, filename?: string) {
+  const isFolder = path.endsWith('/')
+  path = getSecurePath(path, isPrivate)
   if (!filename) return path
   if (filename.includes('..')) throw invalidPath()
   filename = cleanFilename(filename)
-  if (/[^/]\.[^.]+$/.test(path) || basename(path) === filename) return path
+  if (!isFolder && (/[^/]\.[^.]+$/.test(path) || basename(path) === filename)) return path
   return join(path, filename)
 }
 
