@@ -427,7 +427,7 @@ describe('getFile', () => {
 
   const contentType = async (path: string) => {
     const stream: any = await getFile(event, path, true)
-    stream.destroy()
+    await stream.cancel()
     return setHeader.mock.calls.find(([, name]) => name === 'Content-Type')?.[2]
   }
 

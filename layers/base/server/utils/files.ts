@@ -29,7 +29,7 @@ import type { CompletedPart } from '@aws-sdk/client-s3'
 import { checkFileAccess } from '#database/access'
 import { createReadStream, createWriteStream } from 'fs'
 import { pipeline } from 'stream/promises'
-import type { Readable } from 'stream'
+import { Readable } from 'stream'
 import type { H3Event, MultiPartData } from 'h3'
 import { createHash } from 'crypto'
 import mime from 'mime'
@@ -375,11 +375,12 @@ export async function getFile(
     setResponseStatus(event, 206)
     setHeader(event, 'Content-Range', `bytes ${start}-${end}/${stats.size}`)
     setHeader(event, 'Content-Length', end - start + 1)
-    return createReadStream(fullPath, { start, end })
+    return Readable.toWeb(createReadStream(fullPath, { start, end }))
   }
 
   setHeader(event, 'Content-Length', stats.size)
-  return createReadStream(fullPath)
+  // h3 v2 only streams web streams
+  return Readable.toWeb(createReadStream(fullPath))
 }
 
 export async function deletePath(event: H3Event, path: string, isPrivate = true) {
