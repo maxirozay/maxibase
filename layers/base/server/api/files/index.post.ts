@@ -8,8 +8,16 @@ export default defineEventHandler(async (event) => {
   const isPrivatePart = body.find((p) => p.name === 'isPrivate')
   const isPrivate = isPrivatePart ? isPrivatePart.data.toString() === 'true' : true
   const path = pathPart?.data.toString().trim()
+  const maxAge = parseMaxAge(
+    body
+      .find((p) => p.name === 'maxAge')
+      ?.data.toString()
+      .trim(),
+  )
 
   return await Promise.all(
-    body.filter((p) => p.name === 'file').map((file) => uploadFile(event, file, path, isPrivate)),
+    body
+      .filter((p) => p.name === 'file')
+      .map((file) => uploadFile(event, file, path, isPrivate, maxAge)),
   )
 })

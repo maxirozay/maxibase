@@ -14,6 +14,8 @@ import {
   copyFile,
   deletePath,
   cleanFilename,
+  getCacheControl,
+  parseMaxAge,
 } from '#server-utils/files'
 import { parseParts } from '#server-api/files/chunk.post'
 
@@ -130,6 +132,38 @@ describe('cleanFilename', () => {
     expect(cleanFilename('???.pdf')).toBe('file.pdf')
     expect(cleanFilename('.env')).toBe('file.env')
     expect(cleanFilename('***')).toBe('file')
+  })
+})
+
+describe('getCacheControl', () => {
+  it('caches public files for a year and private ones for an hour by default', () => {
+    expect(getCacheControl(false)).toBe('public, max-age=31536000')
+    expect(getCacheControl(true)).toBe('private, max-age=3600')
+  })
+
+  it('uses the given max age', () => {
+    expect(getCacheControl(false, 60)).toBe('public, max-age=60')
+    expect(getCacheControl(true, 60)).toBe('private, max-age=60')
+  })
+
+  it('disables caching for a max age of 0', () => {
+    expect(getCacheControl(false, 0)).toBe('no-store, no-cache')
+    expect(getCacheControl(true, 0)).toBe('no-store, no-cache')
+  })
+})
+
+describe('parseMaxAge', () => {
+  it('reads whole seconds and leaves a missing value undefined', () => {
+    expect(parseMaxAge('60')).toBe(60)
+    expect(parseMaxAge('0')).toBe(0)
+    expect(parseMaxAge('')).toBeUndefined()
+    expect(parseMaxAge(undefined)).toBeUndefined()
+  })
+
+  it('rejects anything but a non-negative integer with a 400', () => {
+    for (const value of ['-1', '1.5', 'abc', 'Infinity']) {
+      expect(() => parseMaxAge(value)).toThrow(expect.objectContaining({ statusCode: 400 }))
+    }
   })
 })
 

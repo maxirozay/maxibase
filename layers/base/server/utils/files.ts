@@ -53,6 +53,7 @@ export async function uploadFile(
   file: MultiPartData,
   path = 'files',
   isPrivate = true,
+  maxAge?: number, // only stored on S3 objects, local files get their headers from nginx
 ) {
   await checkFileAccess(event, path)
   path = getSecurePath(path, isPrivate)
@@ -65,7 +66,7 @@ export async function uploadFile(
       s3Key,
       file.data,
       file.type || 'application/octet-stream',
-      undefined,
+      getCacheControl(isPrivate, maxAge),
       isPrivate,
     )
   } else {
@@ -85,6 +86,7 @@ export async function uploadStream(
   file: { stream: Readable; filename?: string; type?: string },
   path = 'files',
   isPrivate = true,
+  maxAge?: number,
 ) {
   await checkFileAccess(event, path)
   path = getSecurePath(path, isPrivate)
@@ -95,7 +97,7 @@ export async function uploadStream(
       getS3Key(path),
       file.stream,
       file.type || 'application/octet-stream',
-      undefined,
+      getCacheControl(isPrivate, maxAge),
       isPrivate,
     )
   }
@@ -133,6 +135,7 @@ export async function uploadChunk(
     path,
     isPrivate,
     parts,
+    maxAge,
   }: {
     uploadId?: string
     chunkIndex: number
@@ -143,6 +146,7 @@ export async function uploadChunk(
     path: string
     isPrivate: boolean
     parts: CompletedPart[]
+    maxAge?: number // only read on the first chunk, when the S3 upload starts
   },
 ) {
   if (chunkIndex < 0 || chunkIndex >= totalChunks || totalChunks < 1) {
@@ -160,7 +164,12 @@ export async function uploadChunk(
 
   if (useS3()) {
     if (!uploadId) {
-      uploadId = (await initMultipartUploadToS3(getS3Key(path), type, isPrivate))!
+      uploadId = (await initMultipartUploadToS3(
+        getS3Key(path),
+        type,
+        isPrivate,
+        getCacheControl(isPrivate, maxAge),
+      ))!
       parts = []
     }
 
@@ -563,8 +572,19 @@ export const useS3 = () => {
   return s3Client
 }
 
-function defaultCacheControl(isPrivate: boolean) {
-  return isPrivate ? 'private, max-age=3600' : 'public, max-age=31536000'
+export function getCacheControl(isPrivate: boolean, maxAge?: number) {
+  if (maxAge === 0) return 'no-store, no-cache'
+  if (isPrivate) return `private, max-age=${maxAge || 3600}`
+  return `public, max-age=${maxAge || 31536000}`
+}
+
+export function parseMaxAge(value?: string) {
+  if (!value) return undefined
+  const maxAge = Number(value)
+  if (!Number.isInteger(maxAge) || maxAge < 0) {
+    throw createError({ statusCode: 400, message: 'Invalid maxAge' })
+  }
+  return maxAge
 }
 
 export async function uploadToS3(
@@ -578,7 +598,7 @@ export async function uploadToS3(
   if (!client) return null
 
   const config = useRuntimeConfig()
-  cache ||= defaultCacheControl(isPrivate)
+  cache ||= getCacheControl(isPrivate)
 
   if (isPrivate) {
     await client.send(
@@ -618,7 +638,7 @@ export async function uploadStreamToS3(
   if (!client) return null
 
   const config = useRuntimeConfig()
-  cache ||= defaultCacheControl(isPrivate)
+  cache ||= getCacheControl(isPrivate)
   const partSize = 5 * 1024 * 1024 // S3 minimum, only the last part may be smaller
 
   let uploadId: string | undefined
@@ -686,7 +706,7 @@ export async function initMultipartUploadToS3(
     Bucket: isPrivate ? config.s3.privateBucket : config.s3.publicBucket,
     Key: key,
     ContentType: contentType,
-    CacheControl: cache || defaultCacheControl(isPrivate),
+    CacheControl: cache || getCacheControl(isPrivate),
     ACL: isPrivate ? undefined : 'public-read',
   })
 

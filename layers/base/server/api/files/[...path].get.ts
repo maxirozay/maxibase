@@ -26,13 +26,7 @@ export default defineEventHandler(async (event) => {
     redirect,
   } = await getValidatedQuery(event, querySchema.parse)
 
-  let cache = `public, max-age=${maxAge || 31536000}`
-  if (maxAge === 0) {
-    cache = 'no-store, no-cache'
-  } else if (isPrivate) {
-    cache = `private, max-age=${maxAge || 3600}`
-  }
-  setHeader(event, 'Cache-Control', cache)
+  setHeader(event, 'Cache-Control', getCacheControl(isPrivate, maxAge))
   return getFile(event, decodePath(path), isPrivate, serverCache, expireIn, redirect)
 })
 

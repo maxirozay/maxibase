@@ -37,6 +37,7 @@ export default defineEventHandler(async (event) => {
   const path = get('path') || 'files'
   const isPrivate = get('isPrivate') !== 'false'
   const parts = parseParts(get('parts'))
+  const maxAge = parseMaxAge(get('maxAge'))
   const chunkPart = body.find((p) => p.name === 'chunk')
 
   if (!Number.isInteger(chunkIndex) || !Number.isInteger(totalChunks) || !filename || !chunkPart) {
@@ -53,5 +54,6 @@ export default defineEventHandler(async (event) => {
     path,
     isPrivate,
     parts,
+    maxAge,
   })
 })

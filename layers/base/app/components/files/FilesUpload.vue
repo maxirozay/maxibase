@@ -9,6 +9,7 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  maxAge: Number,
   imageFormat: {
     type: Object as PropType<{
       maxHeight?: number
@@ -57,9 +58,15 @@ async function uploadFile(event: Event) {
       files = files.filter((file) => !tooLarge.includes(file))
     }
     if (files.length) {
-      let response = await uploadFiles(files, props.path, props.isPrivate, (p) => {
-        progress.value = p
-      })
+      let response = await uploadFiles(
+        files,
+        props.path,
+        props.isPrivate,
+        (p) => {
+          progress.value = p
+        },
+        props.maxAge,
+      )
       emits('uploaded', response)
       appStore.notify('saved', 'success')
     }

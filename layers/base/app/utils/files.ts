@@ -3,6 +3,7 @@ export async function uploadFiles(
   path: string,
   isPrivate: boolean,
   onProgress?: (progress: number) => void,
+  maxAge?: number, // seconds the browser and CDN may cache the file, 0 disables caching
 ) {
   let totalSize = files.reduce((sum, f) => sum + f.size, 0)
 
@@ -13,6 +14,7 @@ export async function uploadFiles(
     files.forEach((file) => formData.append('file', file))
     formData.append('path', path)
     formData.append('isPrivate', String(isPrivate))
+    if (maxAge !== undefined) formData.append('maxAge', String(maxAge))
     urls = await postFiles(formData)
   } else {
     let uploadedSize = 0
@@ -22,6 +24,7 @@ export async function uploadFiles(
         formData.append('file', file)
         formData.append('path', path)
         formData.append('isPrivate', String(isPrivate))
+        if (maxAge !== undefined) formData.append('maxAge', String(maxAge))
         urls.push(...(await postFiles(formData)))
         uploadedSize += file.size
         const progress = (uploadedSize / totalSize) * 100
@@ -32,7 +35,7 @@ export async function uploadFiles(
           const progress = (uploadedSize / totalSize) * 100
           onProgress?.(Math.round(progress))
         }
-        const url = await uploadInChunks(file, path, isPrivate, onChunkProgress)
+        const url = await uploadInChunks(file, path, isPrivate, onChunkProgress, maxAge)
         if (url) urls.push(url)
       }
     }
@@ -51,6 +54,7 @@ export async function uploadInChunks(
   path: string,
   isPrivate: boolean,
   onProgress?: (progress: number) => void,
+  maxAge?: number,
 ) {
   let uploadId
   let parts: any[] = []
@@ -70,6 +74,7 @@ export async function uploadInChunks(
     formData.append('filename', file.name)
     formData.append('path', path)
     formData.append('isPrivate', String(isPrivate))
+    if (maxAge !== undefined) formData.append('maxAge', String(maxAge))
 
     result = await $fetch('/api/files/chunk', { method: 'POST', body: formData })
     if (i + 1 < totalChunks) {
