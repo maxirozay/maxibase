@@ -112,17 +112,17 @@ describe('S3 proxied file', () => {
 
   it('reports a missing file as not found', async () => {
     const fetch = fetchStatus(404)
-    await expect(
-      getFile(event, 'u/123/gone.png', true, 'no-cache', undefined, false),
-    ).rejects.toMatchObject({ statusCode: 404 })
+    await expect(getFile(event, 'u/123/gone.png', true, undefined, false)).rejects.toMatchObject({
+      statusCode: 404,
+    })
     fetch.mockRestore()
   })
 
   it('reports any other S3 failure as a bad gateway', async () => {
     const fetch = fetchStatus(500)
-    await expect(
-      getFile(event, 'u/123/a.png', true, 'no-cache', undefined, false),
-    ).rejects.toMatchObject({ statusCode: 502 })
+    await expect(getFile(event, 'u/123/a.png', true, undefined, false)).rejects.toMatchObject({
+      statusCode: 502,
+    })
     fetch.mockRestore()
   })
 })

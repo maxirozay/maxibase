@@ -315,7 +315,6 @@ export async function getFile(
   event: H3Event,
   path: string,
   isPrivate = false,
-  cache: RequestCache = 'no-cache',
   expireIn?: number,
   redirect?: boolean,
 ) {
@@ -334,7 +333,7 @@ export async function getFile(
       return sendRedirect(event, url, 302)
     }
 
-    const response = await fetch(url, { cache, headers: range ? { range } : undefined })
+    const response = await fetch(url, { headers: range ? { range } : undefined })
 
     if (response.status === 416) {
       const contentRange = response.headers.get('content-range')

@@ -6,8 +6,6 @@ const querySchema = z.object({
     .transform((v) => v === 'true')
     .optional(),
   maxAge: z.coerce.number().int().min(0).optional(),
-  // only-if-cached is left out, fetch throws on it outside same-origin mode
-  serverCache: z.enum(['default', 'no-store', 'reload', 'no-cache', 'force-cache']).optional(),
   // S3 refuses to presign a URL for longer than 7 days
   expireIn: z.coerce.number().int().positive().max(604800).optional(),
   redirect: z
@@ -21,13 +19,12 @@ export default defineEventHandler(async (event) => {
   const {
     isPrivate = false,
     maxAge,
-    serverCache,
     expireIn,
     redirect,
   } = await getValidatedQuery(event, querySchema.parse)
 
   setHeader(event, 'Cache-Control', getCacheControl(isPrivate, maxAge))
-  return getFile(event, decodePath(path), isPrivate, serverCache, expireIn, redirect)
+  return getFile(event, decodePath(path), isPrivate, expireIn, redirect)
 })
 
 // h3 decodes the path but keeps %25 encoded, so a % in a name needs this second pass
