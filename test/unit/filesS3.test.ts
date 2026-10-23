@@ -7,7 +7,7 @@ import {
   PutObjectCommand,
 } from '@aws-sdk/client-s3'
 import { resetTestState, session, setConfig } from '../setup'
-import { copyFile, listFolder, uploadChunk, uploadFile } from '#server-utils/files'
+import { copyFile, getFile, listFolder, uploadChunk, uploadFile } from '#server-utils/files'
 
 // Kept apart from files.test.ts: the S3 client is cached once created, so every
 // upload in this file goes to S3.
@@ -103,5 +103,26 @@ describe('S3 copy', () => {
   it('sets no ACL on a private file', async () => {
     await copyFile(event, 'u/123/a.png', 'u/123/b.png', true)
     expect(sent(CopyObjectCommand).input.ACL).toBeUndefined()
+  })
+})
+
+describe('S3 proxied file', () => {
+  const fetchStatus = (status: number) =>
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status }))
+
+  it('reports a missing file as not found', async () => {
+    const fetch = fetchStatus(404)
+    await expect(
+      getFile(event, 'u/123/gone.png', true, 'no-cache', undefined, false),
+    ).rejects.toMatchObject({ statusCode: 404 })
+    fetch.mockRestore()
+  })
+
+  it('reports any other S3 failure as a bad gateway', async () => {
+    const fetch = fetchStatus(500)
+    await expect(
+      getFile(event, 'u/123/a.png', true, 'no-cache', undefined, false),
+    ).rejects.toMatchObject({ statusCode: 502 })
+    fetch.mockRestore()
   })
 })

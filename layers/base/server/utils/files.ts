@@ -341,6 +341,7 @@ export async function getFile(
       if (contentRange) setHeader(event, 'Content-Range', contentRange)
       throw createError({ statusCode: 416, message: 'Range not satisfiable' })
     }
+    if (response.status === 404) throw createError({ statusCode: 404, message: 'File not found' })
     if (!response.ok) throw createError({ statusCode: 502, message: 'Failed to fetch file' })
 
     const passthrough = {
