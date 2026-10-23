@@ -1,4 +1,3 @@
 allowBuilds:
-  '@parcel/watcher': true
   esbuild: true
-  nuxt-i18n-micro: true
+  nuxt-i18n-micro: false
