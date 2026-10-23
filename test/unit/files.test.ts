@@ -231,35 +231,41 @@ describe('readUploadBody', () => {
   const MB = 1024 * 1024
   const event = {} as any
   const getRequestHeader = vi.mocked((globalThis as any).getRequestHeader)
-  const readMultipartFormData = vi.mocked((globalThis as any).readMultipartFormData)
+  const readFormData = vi.mocked((globalThis as any).readFormData)
 
   beforeEach(() => {
     session.user = { id: '123' }
     getRequestHeader.mockReset()
-    readMultipartFormData.mockClear()
+    readFormData.mockClear()
   })
 
   it('rejects an anonymous request before reading the body', async () => {
     delete session.user
     await expect(readUploadBody(event, 5)).rejects.toMatchObject({ statusCode: 401 })
-    expect(readMultipartFormData).not.toHaveBeenCalled()
+    expect(readFormData).not.toHaveBeenCalled()
   })
 
   it('rejects a body without a length', async () => {
     await expect(readUploadBody(event, 5)).rejects.toMatchObject({ statusCode: 411 })
-    expect(readMultipartFormData).not.toHaveBeenCalled()
+    expect(readFormData).not.toHaveBeenCalled()
   })
 
   it('rejects a body over the limit before reading it', async () => {
     getRequestHeader.mockReturnValue(String(6 * MB + 1))
     await expect(readUploadBody(event, 5)).rejects.toMatchObject({ statusCode: 413 })
-    expect(readMultipartFormData).not.toHaveBeenCalled()
+    expect(readFormData).not.toHaveBeenCalled()
   })
 
   it('reads a body within the limit', async () => {
     getRequestHeader.mockReturnValue(String(5 * MB))
     await readUploadBody(event, 5)
-    expect(readMultipartFormData).toHaveBeenCalledWith(event)
+    expect(readFormData).toHaveBeenCalledWith(event)
+  })
+
+  it('returns nothing for a body that is not form data', async () => {
+    getRequestHeader.mockReturnValue('10')
+    readFormData.mockRejectedValueOnce(new TypeError('Could not parse content as FormData.'))
+    expect(await readUploadBody(event, 5)).toBeUndefined()
   })
 })
 
@@ -368,13 +374,13 @@ describe('copyFile and deletePath', () => {
   })
 
   it('stores an upload at a path that looks like a file', async () => {
-    const file = { name: 'file', filename: 'photo.jpg', data: Buffer.from('img') }
+    const file = new File(['img'], 'photo.jpg')
     await uploadFile(event, file, 'u/123/avatar.png')
     expect(await readFile(privatePath('u/123/avatar.png'), 'utf8')).toBe('img')
   })
 
   it('stores an upload inside a folder with a dot when the path ends with a slash', async () => {
-    const file = { name: 'file', filename: 'b.txt', data: Buffer.from('nested') }
+    const file = new File(['nested'], 'b.txt')
     await uploadFile(event, file, 'u/123/v1.2/')
     expect(await readFile(privatePath('u/123/v1.2/b.txt'), 'utf8')).toBe('nested')
   })

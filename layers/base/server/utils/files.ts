@@ -30,7 +30,7 @@ import { checkFileAccess } from '#database/access'
 import { createReadStream, createWriteStream } from 'fs'
 import { pipeline } from 'stream/promises'
 import { Readable } from 'stream'
-import type { H3Event, MultiPartData } from 'h3'
+import type { H3Event } from 'h3'
 import { createHash } from 'crypto'
 import mime from 'mime'
 
@@ -46,25 +46,26 @@ export async function readUploadBody(event: H3Event, maxMB: number) {
   const length = getRequestHeader(event, 'content-length')
   if (!length) throw createError({ statusCode: 411, message: 'Content-Length required' })
   if (Number(length) > (maxMB + 1) * MB) throw fileTooLarge()
-  return readMultipartFormData(event)
+  return readFormData(event).catch(() => undefined)
 }
 
 export async function uploadFile(
   event: H3Event,
-  file: MultiPartData,
+  file: File,
   path = 'files',
   isPrivate = true,
   maxAge?: number, // only stored on S3 objects, local files get their headers from nginx
 ) {
   await checkFileAccess(event, path)
-  path = getUploadPath(path, isPrivate, file.filename)
+  path = getUploadPath(path, isPrivate, file.name)
+  const data = Buffer.from(await file.arrayBuffer())
 
   let url
   if (useS3()) {
     const s3Key = getS3Key(path)
     url = await uploadToS3(
       s3Key,
-      file.data,
+      data,
       file.type || 'application/octet-stream',
       getCacheControl(isPrivate, maxAge),
       isPrivate,
@@ -73,7 +74,7 @@ export async function uploadFile(
     const filePath = join(process.cwd(), path)
     const folderPath = filePath.replace(/\/[^/]*$/, '')
     await mkdir(folderPath, { recursive: true })
-    await writeFile(filePath, file.data)
+    await writeFile(filePath, data)
 
     url = getFileURL(path, isPrivate)
   }

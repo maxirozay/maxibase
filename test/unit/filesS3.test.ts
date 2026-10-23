@@ -52,7 +52,7 @@ const chunkedUpload = (maxAge?: number, totalChunks = 2) =>
 
 describe('S3 upload cache', () => {
   it('stores the requested max age on a single upload', async () => {
-    const file = { name: 'file', filename: 'logo.png', type: 'image/png', data: Buffer.alloc(1) }
+    const file = new File(['x'], 'logo.png', { type: 'image/png' })
     expect(await uploadFile(event, file, 'u/123', false, 60)).toBe(
       '/files/files/public/u/123/logo.png',
     )
@@ -75,7 +75,7 @@ describe('S3 private file URLs', () => {
   const privateURL = 'https://app.test/api/files/u/123/big.bin?isPrivate=true'
 
   it('returns the API URL after a single upload', async () => {
-    const file = { name: 'file', filename: 'big.bin', data: Buffer.alloc(1) }
+    const file = new File(['x'], 'big.bin')
     expect(await uploadFile(event, file, 'u/123', true)).toBe(privateURL)
   })
 

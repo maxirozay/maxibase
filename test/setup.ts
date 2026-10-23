@@ -81,6 +81,6 @@ Object.assign(globalThis, {
   setHeader: vi.fn(),
   setResponseStatus: vi.fn(),
   getRequestHeader: vi.fn(),
-  readMultipartFormData: vi.fn(async () => []),
+  readFormData: vi.fn(async () => new FormData()),
   sendRedirect: vi.fn(),
 })
