@@ -133,7 +133,7 @@ export async function requireRecentAuth(event: H3Event) {
   if (!session.authenticatedAt || Date.now() - session.authenticatedAt > maxAge) {
     throw createError({
       status: 403,
-      statusMessage: 'reauth_required',
+      statusText: 'reauth_required',
       message: 'Please verify your identity again to continue.',
     })
   }

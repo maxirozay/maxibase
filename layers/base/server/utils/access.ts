@@ -4,5 +4,5 @@ export async function isAdmin(event: H3Event) {
   const { user } = await requireUserSession(event)
   if (user.role === 'admin') return true
 
-  throw createError({ statusCode: 403, message: 'Insufficient permissions' })
+  throw createError({ status: 403, message: 'Insufficient permissions' })
 }

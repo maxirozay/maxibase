@@ -9,7 +9,7 @@ export async function getOrganizationMember(event: H3Event, organizationId: stri
     },
   })
   if (!membership) {
-    throw createError({ statusCode: 403, message: 'Insufficient permissions' })
+    throw createError({ status: 403, message: 'Insufficient permissions' })
   }
 
   return membership
@@ -23,5 +23,5 @@ export async function isOrganizationAdmin(event: H3Event, organizationId: string
   const membership = await getOrganizationMember(event, organizationId)
   if (membership?.role === 'admin') return true
 
-  throw createError({ statusCode: 403, message: 'Insufficient permissions' })
+  throw createError({ status: 403, message: 'Insufficient permissions' })
 }

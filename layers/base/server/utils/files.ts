@@ -38,13 +38,13 @@ const MB = 1024 * 1024
 
 function fileTooLarge() {
   const { maxSize } = useRuntimeConfig().public.files
-  return createError({ statusCode: 413, message: `File too large, max ${maxSize} MB` })
+  return createError({ status: 413, message: `File too large, max ${maxSize} MB` })
 }
 
 export async function readUploadBody(event: H3Event, maxMB: number) {
   await requireUserSession(event)
   const length = getRequestHeader(event, 'content-length')
-  if (!length) throw createError({ statusCode: 411, message: 'Content-Length required' })
+  if (!length) throw createError({ status: 411, message: 'Content-Length required' })
   if (Number(length) > (maxMB + 1) * MB) throw fileTooLarge()
   return readFormData(event).catch(() => undefined)
 }
@@ -150,7 +150,7 @@ export async function uploadChunk(
   },
 ) {
   if (chunkIndex < 0 || chunkIndex >= totalChunks || totalChunks < 1) {
-    throw createError({ statusCode: 400, message: 'Invalid chunk index' })
+    throw createError({ status: 400, message: 'Invalid chunk index' })
   }
   const { chunkSize, maxSize } = useRuntimeConfig().public.files
   const chunkBytes = (Number(chunkSize) || 1) * MB
@@ -187,7 +187,7 @@ export async function uploadChunk(
     uploadId = crypto.randomUUID()
     parts = []
   } else if (!isUUID(uploadId)) {
-    throw createError({ statusCode: 400, message: 'Invalid upload id' })
+    throw createError({ status: 400, message: 'Invalid upload id' })
   }
 
   const tmpDir = join(process.cwd(), 'files', 'temp', uploadId)
@@ -336,10 +336,10 @@ export async function getFile(
     if (response.status === 416) {
       const contentRange = response.headers.get('content-range')
       if (contentRange) setHeader(event, 'Content-Range', contentRange)
-      throw createError({ statusCode: 416, message: 'Range not satisfiable' })
+      throw createError({ status: 416, message: 'Range not satisfiable' })
     }
-    if (response.status === 404) throw createError({ statusCode: 404, message: 'File not found' })
-    if (!response.ok) throw createError({ statusCode: 502, message: 'Failed to fetch file' })
+    if (response.status === 404) throw createError({ status: 404, message: 'File not found' })
+    if (!response.ok) throw createError({ status: 502, message: 'Failed to fetch file' })
 
     const passthrough = {
       'Content-Type': response.headers.get('content-type'),
@@ -359,7 +359,7 @@ export async function getFile(
 
   const stats = await stat(fullPath).catch(() => null)
   if (!stats?.isFile()) {
-    throw createError({ statusCode: 404, message: 'File not found' })
+    throw createError({ status: 404, message: 'File not found' })
   }
 
   setHeader(event, 'Content-Type', mime.getType(fullPath) || 'application/octet-stream')
@@ -368,7 +368,7 @@ export async function getFile(
   const parsedRange = parseRangeHeader(range, stats.size)
   if (parsedRange === 'unsatisfiable') {
     setHeader(event, 'Content-Range', `bytes */${stats.size}`)
-    throw createError({ statusCode: 416, message: 'Range not satisfiable' })
+    throw createError({ status: 416, message: 'Range not satisfiable' })
   }
 
   if (parsedRange) {
@@ -469,7 +469,7 @@ export async function copyFile(
   const destPath = join(process.cwd(), dest)
   const stats = await stat(srcPath).catch(() => null)
   if (!stats?.isFile()) {
-    throw createError({ statusCode: 404, message: 'File not found' })
+    throw createError({ status: 404, message: 'File not found' })
   }
   await mkdir(dirname(destPath), { recursive: true })
   await fsCopyFile(srcPath, destPath)
@@ -487,7 +487,7 @@ export async function copyFiles(
   deleteSrc = false,
 ) {
   const files = await listFolder(event, src, isPrivate)
-  if (!files.length) throw createError({ statusCode: 404, message: 'File not found' })
+  if (!files.length) throw createError({ status: 404, message: 'File not found' })
   const normalizedSrc = removeRoot(getSecurePath(src, isPrivate), isPrivate)
   const normalizedDest = removeRoot(getSecurePath(dest, isPrivate), isPrivate)
   return Promise.all(
@@ -521,7 +521,7 @@ export function getSecurePath(path: string, isPrivate = true) {
 }
 
 function invalidPath() {
-  return createError({ statusCode: 400, message: 'Invalid path' })
+  return createError({ status: 400, message: 'Invalid path' })
 }
 
 function getUploadPath(path: string, isPrivate: boolean, filename?: string) {
@@ -585,7 +585,7 @@ export function parseMaxAge(value?: string) {
   if (!value) return undefined
   const maxAge = Number(value)
   if (!Number.isInteger(maxAge) || maxAge < 0) {
-    throw createError({ statusCode: 400, message: 'Invalid maxAge' })
+    throw createError({ status: 400, message: 'Invalid maxAge' })
   }
   return maxAge
 }
@@ -790,7 +790,7 @@ export async function deleteFromS3(path: string, isPrivate = true) {
       const result = await client.send(command)
       if (result.Errors?.length) {
         throw createError({
-          statusCode: 502,
+          status: 502,
           message: `Failed to delete ${result.Errors.length} file(s): ${result.Errors.map((e) => `${e.Key} (${e.Code})`).join(', ')}`,
         })
       }

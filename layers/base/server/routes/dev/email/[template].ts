@@ -1,7 +1,7 @@
 export default defineEventHandler(async (event) => {
   if (process.env.NODE_ENV === 'production') {
     throw createError({
-      statusCode: 404,
+      status: 404,
       message: 'Not found',
     })
   }

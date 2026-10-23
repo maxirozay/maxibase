@@ -47,7 +47,7 @@ class HttpError extends Error {
     super(input.message ?? 'Error')
     this.statusCode = input.status ?? input.statusCode ?? 500
     this.status = this.statusCode
-    this.statusMessage = input.statusMessage
+    this.statusMessage = input.statusText ?? input.statusMessage
   }
 }
 
