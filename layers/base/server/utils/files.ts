@@ -600,31 +600,18 @@ export async function uploadToS3(
   const config = useRuntimeConfig()
   cache ||= getCacheControl(isPrivate)
 
-  if (isPrivate) {
-    await client.send(
-      new PutObjectCommand({
-        Bucket: config.s3.privateBucket,
-        Key: key,
-        Body: body,
-        ContentType: contentType,
-        CacheControl: cache,
-      }),
-    )
-
-    return getFileURL(key)
-  }
   await client.send(
     new PutObjectCommand({
-      Bucket: config.s3.publicBucket,
+      Bucket: isPrivate ? config.s3.privateBucket : config.s3.publicBucket,
       Key: key,
       Body: body,
       ContentType: contentType,
       CacheControl: cache,
-      ACL: 'public-read',
+      ACL: isPrivate ? undefined : 'public-read',
     }),
   )
 
-  return getS3URL(key)
+  return isPrivate ? getFileURL(key) : getS3URL(key)
 }
 
 export async function uploadStreamToS3(
@@ -853,6 +840,7 @@ export async function copyFromS3(src: string, dest: string, isPrivate = true, de
       Bucket: bucket,
       Key: dest,
       CopySource: copySource,
+      ACL: isPrivate ? undefined : 'public-read',
     }),
   )
   if (deleteSrc) {

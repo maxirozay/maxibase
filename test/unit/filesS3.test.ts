@@ -1,12 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import {
   S3Client,
+  CopyObjectCommand,
   CreateMultipartUploadCommand,
   ListObjectsV2Command,
   PutObjectCommand,
 } from '@aws-sdk/client-s3'
 import { resetTestState, session, setConfig } from '../setup'
-import { listFolder, uploadChunk, uploadFile } from '#server-utils/files'
+import { copyFile, listFolder, uploadChunk, uploadFile } from '#server-utils/files'
 
 // Kept apart from files.test.ts: the S3 client is cached once created, so every
 // upload in this file goes to S3.
@@ -52,7 +53,9 @@ const chunkedUpload = (maxAge?: number, totalChunks = 2) =>
 describe('S3 upload cache', () => {
   it('stores the requested max age on a single upload', async () => {
     const file = { name: 'file', filename: 'logo.png', type: 'image/png', data: Buffer.alloc(1) }
-    await uploadFile(event, file, 'u/123', false, 60)
+    expect(await uploadFile(event, file, 'u/123', false, 60)).toBe(
+      '/files/files/public/u/123/logo.png',
+    )
     expect(sent(PutObjectCommand).input.CacheControl).toBe('public, max-age=60')
   })
 
@@ -88,5 +91,17 @@ describe('S3 private file URLs', () => {
     )
     const [file] = await listFolder(event, 'u/123', true)
     expect(file!.url).toBe(privateURL)
+  })
+})
+
+describe('S3 copy', () => {
+  it('keeps a public file public', async () => {
+    await copyFile(event, 'u/123/a.png', 'u/123/b.png', false)
+    expect(sent(CopyObjectCommand).input.ACL).toBe('public-read')
+  })
+
+  it('sets no ACL on a private file', async () => {
+    await copyFile(event, 'u/123/a.png', 'u/123/b.png', true)
+    expect(sent(CopyObjectCommand).input.ACL).toBeUndefined()
   })
 })
