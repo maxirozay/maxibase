@@ -1,5 +1,5 @@
 import { auth, refreshTokens } from '#server/database/schema'
-import { and, eq, lt, lte, sql } from 'drizzle-orm'
+import { and, eq, isNotNull, isNull, lt, lte, or, sql } from 'drizzle-orm'
 import { createHash, randomBytes } from 'crypto'
 import type { H3Event } from 'h3'
 
@@ -171,7 +171,7 @@ export async function updateLastActive(userId: string) {
 }
 
 export async function cleanInactiveUsers() {
-  const { retentionDays } = useRuntimeConfig().inactiveUsers
+  const { retentionDays, warningDays } = useRuntimeConfig().inactiveUsers
 
   const deleted = await db
     .delete(auth)
@@ -184,6 +184,58 @@ export async function cleanInactiveUsers() {
       undefined,
       'clean task',
     )
+  }
+
+  if (warningDays > 0) await warnInactiveUsers(retentionDays, warningDays)
+}
+
+async function warnInactiveUsers(retentionDays: number, warningDays: number) {
+  const warnAfterDays = Math.max(retentionDays - warningDays, 0)
+
+  const users = await db
+    .select({
+      id: auth.id,
+      email: auth.email,
+      locale: auth.locale,
+      lastActiveOn: auth.lastActiveOn,
+    })
+    .from(auth)
+    .where(
+      and(
+        lt(auth.lastActiveOn, sql`current_date - ${warnAfterDays}::int`),
+        isNotNull(auth.email),
+        or(isNull(auth.deletionWarnedOn), lte(auth.deletionWarnedOn, auth.lastActiveOn)),
+      ),
+    )
+
+  let failed = 0
+  for (const user of users) {
+    // The first nightly run where lastActiveOn < current_date - retentionDays
+    const deletionOn = new Date(user.lastActiveOn.getTime() + daysToMilliseconds(retentionDays + 1))
+    const locale = user.locale ?? 'en'
+    const date = new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeZone: 'UTC' }).format(
+      deletionOn,
+    )
+    try {
+      await sendEmailTemplate('inactiveDeletion', locale, { date }, user.email!)
+      await db
+        .update(auth)
+        .set({ deletionWarnedOn: sql`current_date` })
+        .where(eq(auth.id, user.id))
+    } catch {
+      failed++
+    }
+  }
+
+  if (users.length > failed) {
+    await log(
+      `Warned ${users.length - failed} inactive users of their deletion`,
+      undefined,
+      'clean task',
+    )
+  }
+  if (failed) {
+    throw new Error(`${failed} of ${users.length} inactive user warnings failed to send`)
   }
 }
 

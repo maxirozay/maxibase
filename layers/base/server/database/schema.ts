@@ -25,6 +25,7 @@ export const auth = authSchema.table('users', {
   totp: text(),
   role: appRoleEnum().notNull().default('user'),
   lastActiveOn: date({ mode: 'date' }).notNull().defaultNow(),
+  deletionWarnedOn: date({ mode: 'date' }),
   locale: text(),
 })
 

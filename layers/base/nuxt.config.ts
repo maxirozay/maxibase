@@ -76,6 +76,7 @@ export default defineNuxtConfig({
     },
     inactiveUsers: {
       retentionDays: 0, // delete users inactive for this many days, 0 keeps them forever
+      warningDays: 30, // email users this many days before deletion, 0 deletes without warning
     },
     rateLimit: {
       enabled: true,

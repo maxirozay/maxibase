@@ -44,6 +44,11 @@ Each user's `last_active_on` is set to the day they last signed in or resumed a 
 longer, with everything that cascades from them. It is `0` by default, which keeps everyone.
 A deleted user stays in the backups until they age out.
 
+`NUXT_INACTIVE_USERS_WARNING_DAYS` (30 by default) emails users that many days before, with
+their deletion date. A failed warning is retried every night but never delays the deletion,
+and signing in again cancels it. When the setting is first turned on, users already past the
+limit are deleted that night without a warning.
+
 ## Deployment
 
 ### On your server
