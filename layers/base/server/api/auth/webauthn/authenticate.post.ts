@@ -14,6 +14,9 @@ export default defineWebAuthnAuthenticateEventHandler({
 
     return challenge as string
   },
+  getOptions() {
+    return { userVerification: passkeyUserVerification() }
+  },
   async allowCredentials(event, userName) {
     const user = await getAuth(event, userName, true)
     return (user as any).credentials || []
@@ -29,6 +32,8 @@ export default defineWebAuthnAuthenticateEventHandler({
     return credential as any
   },
   async onSuccess(event, { credential, authenticationInfo }) {
+    requireUserVerification(authenticationInfo.userVerified)
+
     // the next assertion must report a higher counter, which exposes a cloned authenticator
     await db
       .update(credentials)

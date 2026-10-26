@@ -32,6 +32,19 @@ export function requireSecondFactor(user: Pick<AuthUser, 'totp'> & { credentials
   }
 }
 
+export function passkeyUserVerification(): 'required' | 'preferred' {
+  return useRuntimeConfig().forceMfa ? 'required' : 'preferred'
+}
+
+export function requireUserVerification(userVerified: boolean) {
+  if (useRuntimeConfig().forceMfa && !userVerified) {
+    throw createError({
+      status: 400,
+      message: 'Set a PIN on your security key to use it.',
+    })
+  }
+}
+
 export async function createAuth(user: Pick<AuthUser, 'email'>) {
   const insertedUsers = await db
     .insert(auth)

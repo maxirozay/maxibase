@@ -14,6 +14,9 @@ const registerHandler = defineWebAuthnRegisterEventHandler({
 
     return challenge as string
   },
+  getOptions() {
+    return { authenticatorSelection: { userVerification: passkeyUserVerification() } }
+  },
   async validateUser(userBody, event) {
     const session = await requireUserSession(event)
     const parsed = z
@@ -28,7 +31,9 @@ const registerHandler = defineWebAuthnRegisterEventHandler({
 
     return parsed.data
   },
-  async onSuccess(event, { credential }) {
+  async onSuccess(event, { credential, registrationInfo }) {
+    requireUserVerification(registrationInfo.userVerified)
+
     const session = await requireUserSession(event)
     await db.insert(credentials).values({
       name: new Date().toISOString().substring(0, 10),
