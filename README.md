@@ -41,8 +41,9 @@ DELETE FROM auth.recovery_codes WHERE user_id = (SELECT id FROM auth.users WHERE
 
 Each user's `last_active_on` is set to the day they last signed in or resumed a session. Set
 `NUXT_INACTIVE_USERS_RETENTION_DAYS` and the nightly `clean` task deletes the users inactive for
-longer, with everything that cascades from them. It is `0` by default, which keeps everyone.
-A deleted user stays in the backups until they age out.
+longer, with everything that cascades from them and their `u/{id}` file folders, private and
+public. It is `0` by default, which keeps everyone. A user whose files can't be deleted is kept
+and retried the next night. A deleted user stays in the backups until they age out.
 
 `NUXT_INACTIVE_USERS_WARNING_DAYS` (30 by default) emails users that many days before, with
 their deletion date. A failed warning is retried every night but never delays the deletion,

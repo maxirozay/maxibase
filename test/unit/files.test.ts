@@ -16,6 +16,7 @@ import {
   copyFiles,
   listFolder,
   deletePath,
+  deleteUserFiles,
   cleanFilename,
   getCacheControl,
   getFile,
@@ -371,6 +372,26 @@ describe('copyFile and deletePath', () => {
   it('deletes a file and its emptied folders', async () => {
     await deletePath(event, 'u/123/a.txt')
     expect(await readdir(join(cwd, 'files', 'private'))).toEqual([])
+  })
+
+  // Run by the clean task, without a session
+  it('deletes a user folder, private and public, and nobody else', async () => {
+    delete session.user
+    const publicPath = (path: string) => join(cwd, 'files', 'public', path)
+    await mkdir(publicPath('u/123'), { recursive: true })
+    await writeFile(publicPath('u/123/b.txt'), 'public')
+    await mkdir(privatePath('u/1234'))
+    await writeFile(privatePath('u/1234/c.txt'), 'other')
+    await deleteUserFiles('123')
+    expect(await readdir(privatePath('u'))).toEqual(['1234'])
+    expect(await readdir(join(cwd, 'files', 'public'))).toEqual([])
+  })
+
+  // Most users never upload: no u/{id} folder, and here no public folder at all
+  it('deletes nothing for a user without files', async () => {
+    delete session.user
+    await deleteUserFiles('456')
+    expect(await readFile(privatePath('u/123/a.txt'), 'utf8')).toBe('hello')
   })
 
   it('stores an upload at a path that looks like a file', async () => {

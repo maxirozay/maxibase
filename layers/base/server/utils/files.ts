@@ -386,6 +386,20 @@ export async function getFile(
 
 export async function deletePath(event: H3Event, path: string, isPrivate = true) {
   await checkFileAccess(event, path)
+  await removePath(path, isPrivate)
+}
+
+// The u/{id} folders of the default checkFileAccess, private and public
+export async function deleteUserFiles(userId: string) {
+  const { s3 } = useRuntimeConfig()
+  for (const isPrivate of [true, false]) {
+    if (useS3() && !(isPrivate ? s3.privateBucket : s3.publicBucket)) continue
+    await removePath(`u/${userId}`, isPrivate)
+  }
+}
+
+// No access check, for server code acting on its own
+async function removePath(path: string, isPrivate: boolean) {
   path = getSecurePath(path, isPrivate)
   // An empty path resolves to the root folder, deleting it would wipe every file
   if (path === getSecurePath('', isPrivate)) throw invalidPath()

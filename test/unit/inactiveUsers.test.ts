@@ -3,21 +3,36 @@ import { logSpy, resetTestState, setConfig } from '../setup'
 import { daysToMilliseconds } from '#server-utils/time'
 import { cleanInactiveUsers } from '#server-utils/auth'
 
-// Conditions as plain data, so the warned user's id can be read back
+// Conditions as plain data, so the ids deleted or warned can be read back
 vi.mock('drizzle-orm', async (importOriginal) => ({
   ...(await importOriginal<typeof import('drizzle-orm')>()),
+  and: (...conditions: unknown[]) => conditions,
   eq: (column: unknown, value: unknown) => ({ column, value }),
+  inArray: (column: unknown, values: unknown[]) => ({ column, values }),
 }))
 
 type User = { id: string; email: string; locale: string | null; lastActiveOn: Date }
 
-let deleted: { id: string }[] = []
-let inactive: User[] = []
+let pastLimit: string[] = []
+let toWarn: User[] = []
+let deleted: string[] = []
 let warned: string[] = []
 
 const db = {
-  delete: vi.fn(() => ({ where: () => ({ returning: async () => deleted }) })),
-  select: vi.fn(() => ({ from: () => ({ where: async () => inactive }) })),
+  // The deletion selects only the id, the warning the email too
+  select: vi.fn((fields: object) => ({
+    from: () => ({
+      where: async () => ('email' in fields ? toWarn : pastLimit.map((id) => ({ id }))),
+    }),
+  })),
+  delete: vi.fn(() => ({
+    where: ([{ values }]: [{ values: string[] }]) => ({
+      returning: async () => {
+        deleted.push(...values)
+        return values.map((id) => ({ id }))
+      },
+    }),
+  })),
   update: () => ({
     set: () => ({ where: async ({ value }: { value: string }) => void warned.push(value) }),
   }),
@@ -29,6 +44,10 @@ const sendEmailTemplate = vi.fn(
   },
 )
 
+const deleteUserFiles = vi.fn(async (id: string) => {
+  if (id.startsWith('fail')) throw new Error('S3 down')
+})
+
 const user = (id: string, locale: string | null = 'en'): User => ({
   id,
   email: `${id}@example.com`,
@@ -39,35 +58,60 @@ const user = (id: string, locale: string | null = 'en'): User => ({
 beforeEach(() => {
   resetTestState()
   setConfig({ inactiveUsers: { retentionDays: 730, warningDays: 30 } })
+  pastLimit = []
+  toWarn = []
   deleted = []
-  inactive = []
   warned = []
-  db.delete.mockClear()
   db.select.mockClear()
+  db.delete.mockClear()
   sendEmailTemplate.mockClear()
+  deleteUserFiles.mockClear()
   vi.stubGlobal('db', db)
   vi.stubGlobal('sendEmailTemplate', sendEmailTemplate)
+  vi.stubGlobal('deleteUserFiles', deleteUserFiles)
   vi.stubGlobal('daysToMilliseconds', daysToMilliseconds)
 })
 
 describe('cleanInactiveUsers', () => {
-  // A user warned tonight must not be deleted in the same run.
-  it('deletes before warning', async () => {
-    deleted = [{ id: 'gone' }]
+  it('deletes the files of users past the limit, then the users', async () => {
+    pastLimit = ['a', 'b']
     await cleanInactiveUsers()
-    expect(db.delete.mock.invocationCallOrder[0]).toBeLessThan(
-      db.select.mock.invocationCallOrder[0]!,
-    )
+    expect(deleteUserFiles.mock.calls).toEqual([['a'], ['b']])
+    expect(deleted).toEqual(['a', 'b'])
     expect(logSpy).toHaveBeenCalledWith(
-      'Deleted 1 users inactive for 730 days',
+      'Deleted 2 users inactive for 730 days',
       undefined,
       'clean task',
     )
   })
 
+  // Deleting the row first would orphan the files, with nothing left to retry them.
+  it('keeps a user whose files could not be deleted', async () => {
+    pastLimit = ['fail', 'ok']
+    await expect(cleanInactiveUsers()).rejects.toThrow(
+      'Inactive users: files of 1 users could not be deleted',
+    )
+    expect(deleted).toEqual(['ok'])
+  })
+
+  it('deletes nothing when no user is past the limit', async () => {
+    await cleanInactiveUsers()
+    expect(db.delete).not.toHaveBeenCalled()
+    expect(logSpy).not.toHaveBeenCalled()
+  })
+
+  // A user warned tonight must not be deleted in the same run.
+  it('deletes before warning', async () => {
+    pastLimit = ['gone']
+    await cleanInactiveUsers()
+    expect(db.delete.mock.invocationCallOrder[0]).toBeLessThan(
+      db.select.mock.invocationCallOrder[1]!,
+    )
+  })
+
   // Deleted on the first night after lastActiveOn + retentionDays.
   it('announces the deletion date in the user locale', async () => {
-    inactive = [user('fr', 'fr'), user('none', null)]
+    toWarn = [user('fr', 'fr'), user('none', null)]
     await cleanInactiveUsers()
     expect(sendEmailTemplate).toHaveBeenCalledWith(
       'inactiveDeletion',
@@ -86,17 +130,16 @@ describe('cleanInactiveUsers', () => {
 
   it('does not warn when warningDays is 0', async () => {
     setConfig({ inactiveUsers: { retentionDays: 730, warningDays: 0 } })
+    toWarn = [user('a')]
     await cleanInactiveUsers()
-    expect(db.delete).toHaveBeenCalledOnce()
-    expect(db.select).not.toHaveBeenCalled()
+    expect(db.select).toHaveBeenCalledOnce()
+    expect(sendEmailTemplate).not.toHaveBeenCalled()
   })
 
   // Not marked as warned, so the next night retries it.
   it('reports failed warnings after sending the others', async () => {
-    inactive = [user('fail'), user('ok')]
-    await expect(cleanInactiveUsers()).rejects.toThrow(
-      '1 of 2 inactive user warnings failed to send',
-    )
+    toWarn = [user('fail'), user('ok')]
+    await expect(cleanInactiveUsers()).rejects.toThrow('Inactive users: 1 warnings failed to send')
     expect(warned).toEqual(['ok'])
     expect(logSpy).toHaveBeenCalledWith(
       'Warned 1 inactive users of their deletion',

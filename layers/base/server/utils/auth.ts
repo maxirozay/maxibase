@@ -1,5 +1,5 @@
 import { auth, refreshTokens } from '#server/database/schema'
-import { and, eq, isNotNull, isNull, lt, lte, or, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, isNull, lt, lte, or, sql } from 'drizzle-orm'
 import { createHash, randomBytes } from 'crypto'
 import type { H3Event } from 'h3'
 
@@ -172,13 +172,22 @@ export async function updateLastActive(userId: string) {
 
 export async function cleanInactiveUsers() {
   const { retentionDays, warningDays } = useRuntimeConfig().inactiveUsers
+  const inactive = lt(auth.lastActiveOn, sql`current_date - ${retentionDays}::int`)
 
-  const deleted = await db
-    .delete(auth)
-    .where(lt(auth.lastActiveOn, sql`current_date - ${retentionDays}::int`))
-    .returning({ id: auth.id })
+  const users = await db.select({ id: auth.id }).from(auth).where(inactive)
+  const ids: string[] = []
+  for (const { id } of users) {
+    await deleteUserFiles(id).then(
+      () => ids.push(id),
+      () => {},
+    )
+  }
 
-  if (deleted.length) {
+  if (ids.length) {
+    const deleted = await db
+      .delete(auth)
+      .where(and(inArray(auth.id, ids), inactive))
+      .returning({ id: auth.id })
     await log(
       `Deleted ${deleted.length} users inactive for ${retentionDays} days`,
       undefined,
@@ -186,7 +195,14 @@ export async function cleanInactiveUsers() {
     )
   }
 
-  if (warningDays > 0) await warnInactiveUsers(retentionDays, warningDays)
+  const failedWarnings = warningDays > 0 ? await warnInactiveUsers(retentionDays, warningDays) : 0
+
+  const errors = []
+  if (users.length > ids.length) {
+    errors.push(`files of ${users.length - ids.length} users could not be deleted`)
+  }
+  if (failedWarnings) errors.push(`${failedWarnings} warnings failed to send`)
+  if (errors.length) throw new Error(`Inactive users: ${errors.join(', ')}`)
 }
 
 async function warnInactiveUsers(retentionDays: number, warningDays: number) {
@@ -234,9 +250,7 @@ async function warnInactiveUsers(retentionDays: number, warningDays: number) {
       'clean task',
     )
   }
-  if (failed) {
-    throw new Error(`${failed} of ${users.length} inactive user warnings failed to send`)
-  }
+  return failed
 }
 
 export async function createRefreshToken(userId: string, event: H3Event) {
