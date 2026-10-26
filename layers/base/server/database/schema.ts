@@ -49,6 +49,18 @@ export const credentials = authSchema.table(
   (table) => [primaryKey({ columns: [table.userId, table.id] })],
 )
 
+export const recoveryCodes = authSchema.table(
+  'recovery_codes',
+  {
+    userId: uuid()
+      .notNull()
+      .references(() => auth.id, { onDelete: 'cascade' }),
+    code: text().notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.code] })],
+)
+
 export const logs = authSchema.table(
   'logs',
   {

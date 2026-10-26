@@ -17,5 +17,14 @@
   "registerPasskey": "Ajouter une passkey",
   "settings": "Paramètres",
   "setupTotp": "Utiliser une application d'authentification",
-  "totpSecret": "Scannez ce code QR avec votre application d'authentification ou copiez le code manuellement."
+  "totpSecret": "Scannez ce code QR avec votre application d'authentification ou copiez le code manuellement.",
+  "copy": "Copier",
+  "generateRecoveryCodes": "Générer des codes de récupération",
+  "recoveryCodes": "Codes de récupération",
+  "recoveryCodesDescription": "Codes à usage unique pour vous connecter si vous perdez votre passkey ou votre application d'authentification.",
+  "recoveryCodesLeft": "Codes restants : {count}.",
+  "recoveryCodesRequireFactor": "Ajoutez d'abord une passkey ou une application d'authentification.",
+  "recoveryCodesSave": "Conservez ces codes en lieu sûr, ils ne seront plus affichés. Chaque code ne fonctionne qu'une fois.",
+  "recoveryCodesSaved": "Je les ai sauvegardés",
+  "replaceRecoveryCodes": "Vos codes de récupération actuels ne fonctionneront plus. En générer de nouveaux ?"
 }

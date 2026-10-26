@@ -34,6 +34,8 @@ export default defineNuxtConfig({
         '/api/auth/email/verify': { limit: 10, window: 60 },
         '/api/auth/otp/verify': { limit: 10, window: 60 },
         '/api/auth/totp/verify': { limit: 10, window: 60 },
+        '/api/auth/recovery/verify': { limit: 10, window: 60 },
+        '/api/auth/recovery/generate': { limit: 5, window: 900 },
         '/api/auth/webauthn/authenticate': { limit: 10, window: 60 },
         '/api/auth/webauthn/register': { limit: 10, window: 60 },
         '/api/auth/anonymous': { limit: 5, window: 3600 },

@@ -12,6 +12,7 @@ type AuthInfo = {
   credentials: { id: string; name: string }[]
   hasPassword: boolean
   hasTOTP: boolean
+  recoveryCodes: number
   forceMfa: boolean
 }
 
@@ -19,8 +20,10 @@ const auth = ref<AuthInfo>({
   credentials: [],
   hasPassword: false,
   hasTOTP: false,
+  recoveryCodes: 0,
   forceMfa: false,
 })
+const recoveryCodes = ref<string[]>([])
 const TOTPSecret = ref('')
 const TOTPCode = ref('')
 const password1 = ref('')
@@ -54,6 +57,7 @@ const canRemovePasskey = computed(
   () => !auth.value?.forceMfa || auth.value.hasTOTP || auth.value.credentials.length > 1,
 )
 const canDisableTOTP = computed(() => !auth.value?.forceMfa || auth.value.credentials.length > 0)
+const hasSecondFactor = computed(() => auth.value.hasTOTP || auth.value.credentials.length > 0)
 
 async function getAuth() {
   try {
@@ -213,6 +217,21 @@ async function disableTOTP() {
     TOTPCode.value = ''
     auth.value.hasTOTP = false
     showTOTP.value = false
+  } catch (e: any) {
+    appStore.notify(e?.data?.message || e?.message, 'error')
+  }
+}
+
+async function generateRecoveryCodes() {
+  try {
+    if (auth.value.recoveryCodes && !(await appStore.confirm($t('replaceRecoveryCodes') as string)))
+      return
+    if (!(await checkAuth())) return
+    const response = await $fetch<{ codes: string[] }>('/api/auth/recovery/generate', {
+      method: 'POST',
+    })
+    recoveryCodes.value = response.codes
+    auth.value.recoveryCodes = response.codes.length
   } catch (e: any) {
     appStore.notify(e?.data?.message || e?.message, 'error')
   }
@@ -453,6 +472,22 @@ onMounted(getAuth)
           :title="canDisableTOTP ? '' : $t('lastFactor')"
           @click.prevent="toggleTOTP"
         />
+
+        <h3 class="mt2 mb0">{{ $t('recoveryCodes') }}</h3>
+        <p class="muted-text mt0">
+          {{ $t('recoveryCodesDescription') }}
+          <template v-if="auth.recoveryCodes">
+            {{ $t('recoveryCodesLeft', { count: auth.recoveryCodes }) }}
+          </template>
+        </p>
+        <button
+          class="flex"
+          :disabled="!hasSecondFactor"
+          :title="hasSecondFactor ? '' : $t('recoveryCodesRequireFactor')"
+          @click="generateRecoveryCodes"
+        >
+          {{ $t('generateRecoveryCodes') }}
+        </button>
       </section>
       <div class="flex-row my3">
         <button
@@ -463,6 +498,43 @@ onMounted(getAuth)
         </button>
       </div>
     </template>
+
+    <div
+      v-if="recoveryCodes.length"
+      class="modal"
+    >
+      <div
+        class="p3"
+        style="max-width: min(400px, 90vw)"
+      >
+        <p class="mt0">{{ $t('recoveryCodesSave') }}</p>
+        <ul
+          class="text-center p0"
+          style="list-style: none; font-family: monospace; columns: 2"
+        >
+          <li
+            v-for="code in recoveryCodes"
+            :key="code"
+          >
+            {{ code }}
+          </li>
+        </ul>
+        <div class="flex-row g1">
+          <button
+            class="fg fg-border"
+            @click="copyToClipboard(recoveryCodes.join('\n'))"
+          >
+            {{ $t('copy') }}
+          </button>
+          <button
+            class="ml"
+            @click="recoveryCodes = []"
+          >
+            {{ $t('recoveryCodesSaved') }}
+          </button>
+        </div>
+      </div>
+    </div>
 
     <div
       v-if="showTOTP && TOTPSecret"

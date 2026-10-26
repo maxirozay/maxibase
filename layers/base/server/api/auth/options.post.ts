@@ -14,6 +14,7 @@ export default defineEventHandler(async (event) => {
       hasPassword: !!user.password,
       hasTOTP: !!user.totp,
       hasPasskey: user.credentials!.length > 0,
+      hasRecoveryCodes: (await countRecoveryCodes(user.id)) > 0,
     }
   } catch {
     return {
@@ -21,6 +22,7 @@ export default defineEventHandler(async (event) => {
       hasPassword: false,
       hasTOTP: false,
       hasPasskey: false,
+      hasRecoveryCodes: false,
     }
   }
 })

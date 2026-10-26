@@ -13,6 +13,10 @@ export const authRelations = defineRelationsPart(schema, (r) => ({
       from: r.auth.id,
       to: r.credentials.userId,
     }),
+    recoveryCodes: r.many.recoveryCodes({
+      from: r.auth.id,
+      to: r.recoveryCodes.userId,
+    }),
   },
   refreshTokens: {
     auth: r.one.auth({
@@ -23,6 +27,12 @@ export const authRelations = defineRelationsPart(schema, (r) => ({
   credentials: {
     auth: r.one.auth({
       from: r.credentials.userId,
+      to: r.auth.id,
+    }),
+  },
+  recoveryCodes: {
+    auth: r.one.auth({
+      from: r.recoveryCodes.userId,
       to: r.auth.id,
     }),
   },

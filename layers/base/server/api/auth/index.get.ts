@@ -5,6 +5,7 @@ export default defineEventHandler(async (event) => {
     credentials: user.credentials!.map(({ id, name }) => ({ id, name })),
     hasPassword: !!user.password,
     hasTOTP: !!user.totp,
+    recoveryCodes: await countRecoveryCodes(user.id),
     forceMfa: useRuntimeConfig().forceMfa,
   }
 })

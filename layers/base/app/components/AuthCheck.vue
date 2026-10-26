@@ -11,6 +11,8 @@ const email = ref('')
 const password = ref('')
 const otpRequested = ref(false)
 const totp = ref('')
+const recoveryCode = ref('')
+const useRecoveryCode = ref(false)
 const optionsFetched = ref(false)
 const showPassword = ref(false)
 const options = ref({
@@ -18,6 +20,7 @@ const options = ref({
   hasPassword: false,
   hasTOTP: false,
   hasPasskey: false,
+  hasRecoveryCodes: false,
 })
 let isLoading = ref()
 
@@ -67,25 +70,45 @@ async function signInWithOtp() {
   }
 }
 
+function firstFactor(): { otp: string } | { password: string } {
+  if (password.value.length === 6 || password.value === route.query.token) {
+    return { otp: password.value }
+  }
+  return { password: password.value }
+}
+
 async function signInWithTOTP() {
   if (!email.value || !totp.value || !password.value) return
   isLoading.value = true
   try {
-    const body: {
-      email: string
-      token: string
-      otp?: string
-      password?: string
-    } = { email: email.value, token: totp.value }
-    if (password.value.length === 6 || password.value === route.query.token) {
-      body.otp = password.value
-    } else body.password = password.value
     await $fetch('/api/auth/totp/verify', {
       method: 'POST',
-      body,
+      body: { email: email.value, token: totp.value, ...firstFactor() },
     })
     await refreshSession()
     totp.value = ''
+  } catch (e: any) {
+    handleError(e)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+async function signInWithRecoveryCode() {
+  if (!email.value || !recoveryCode.value || !password.value) return
+  isLoading.value = true
+  try {
+    await $fetch('/api/auth/recovery/verify', {
+      method: 'POST',
+      body: {
+        email: email.value,
+        code: recoveryCode.value,
+        locale: useI18n().$getLocale(),
+        ...firstFactor(),
+      },
+    })
+    await refreshSession()
+    recoveryCode.value = ''
   } catch (e: any) {
     handleError(e)
   } finally {
@@ -129,7 +152,8 @@ function signIn() {
     if (!email.value || isLoading.value) return
     // paste and change bypass the browser's check, which only guards the submit
     if (!signInForm.value?.reportValidity()) return
-    if (totp.value) signInWithTOTP()
+    if (useRecoveryCode.value) signInWithRecoveryCode()
+    else if (totp.value) signInWithTOTP()
     else if (password.value.length === 6) signInWithOtp()
     else signInWithPassword()
   }, 100)
@@ -180,7 +204,7 @@ async function getSignInOptions(email: string) {
   }
 }
 
-const pasteFields = { password, totp }
+const pasteFields = { password, totp, recoveryCode }
 
 async function pasteTo(field: keyof typeof pasteFields) {
   try {
@@ -260,7 +284,32 @@ onBeforeUnmount(() => WebAuthnAbortService.cancelCeremony())
             </button>
           </div>
         </div>
-        <div v-if="options.hasTOTP">
+        <div v-if="useRecoveryCode">
+          <label for="recovery-code">{{ $t('authCheck.recoveryCode') }}</label>
+          <div class="group flex-row">
+            <input
+              id="recovery-code"
+              v-model.trim="recoveryCode"
+              type="text"
+              :disabled="isLoading || !password"
+              autocomplete="off"
+              autocapitalize="none"
+              pattern="[0-9a-fA-F]{5}-?[0-9a-fA-F]{5}"
+              required
+              @paste="signIn"
+            />
+            <button
+              type="button"
+              class="flex-center fg"
+              :title="$t('paste') as string"
+              :disabled="isLoading || !password"
+              @click="pasteTo('recoveryCode')"
+            >
+              <Icon name="lucide:clipboard-paste" />
+            </button>
+          </div>
+        </div>
+        <div v-else-if="options.hasTOTP">
           <label for="totp">{{ $t('authCheck.authenticatorCode') }}</label>
           <div class="group flex-row">
             <input
@@ -288,7 +337,11 @@ onBeforeUnmount(() => WebAuthnAbortService.cancelCeremony())
         </div>
         <button
           type="submit"
-          :disabled="isLoading || (!password && !otpRequested) || (options.hasTOTP && !totp)"
+          :disabled="
+            isLoading ||
+            (!password && !otpRequested) ||
+            (useRecoveryCode ? !recoveryCode : options.hasTOTP && !totp)
+          "
           :class="['w mt1', isLoading ? 'spin' : '']"
         >
           {{ $t('authCheck.signin') }}
@@ -297,7 +350,7 @@ onBeforeUnmount(() => WebAuthnAbortService.cancelCeremony())
           v-if="options.hasPasskey"
           type="button"
           :disabled="isLoading"
-          class="flex-center g1 w mt1 bg bg-border"
+          class="flex-center g2 w mt1 bg bg-border"
           @click="signInWithPasskey(email)"
         >
           <Icon name="lucide:key-round" />
@@ -311,6 +364,16 @@ onBeforeUnmount(() => WebAuthnAbortService.cancelCeremony())
           @click="requestOtp"
         >
           {{ $t('authCheck.getCode') }}
+        </button>
+        <button
+          v-if="options.hasRecoveryCodes"
+          type="button"
+          class="w"
+          style="background: none; border: none; color: inherit"
+          :disabled="isLoading"
+          @click="useRecoveryCode = !useRecoveryCode"
+        >
+          {{ useRecoveryCode ? $t('cancel') : $t('authCheck.useRecoveryCode') }}
         </button>
         <p
           v-if="otpRequested"

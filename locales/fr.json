@@ -32,6 +32,8 @@
     "otpSent": "Code envoyé à {email}",
     "passkey": "Utiliser une passkey",
     "password": "Mot de passe",
-    "signin": "Se connecter"
+    "recoveryCode": "Code de récupération",
+    "signin": "Se connecter",
+    "useRecoveryCode": "Utiliser un code de récupération"
   }
 }

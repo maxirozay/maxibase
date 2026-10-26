@@ -17,5 +17,14 @@
   "registerPasskey": "Add a passkey",
   "settings": "Settings",
   "setupTotp": "Use an authenticator app",
-  "totpSecret": "Scan this QR code with your authenticator app or copy the code manually."
+  "totpSecret": "Scan this QR code with your authenticator app or copy the code manually.",
+  "copy": "Copy",
+  "generateRecoveryCodes": "Generate recovery codes",
+  "recoveryCodes": "Recovery codes",
+  "recoveryCodesDescription": "Single-use codes to sign in if you lose your passkey or authenticator app.",
+  "recoveryCodesLeft": "Codes left: {count}.",
+  "recoveryCodesRequireFactor": "Add a passkey or an authenticator app first.",
+  "recoveryCodesSave": "Save these codes somewhere safe, they will not be shown again. Each code works once.",
+  "recoveryCodesSaved": "I saved them",
+  "replaceRecoveryCodes": "Your current recovery codes will stop working. Generate new ones?"
 }
