@@ -497,9 +497,12 @@ onMounted(getAuth)
         <h3 class="mt2 mb0">{{ $t('recoveryCodes') }}</h3>
         <p class="muted-text mt0">
           {{ $t('recoveryCodesDescription') }}
-          <template v-if="auth.recoveryCodes">
+          <span
+            v-if="hasSecondFactor"
+            :class="auth.recoveryCodes < 5 ? 'danger-text' : ''"
+          >
             {{ $t('recoveryCodesLeft', { count: auth.recoveryCodes }) }}
-          </template>
+          </span>
         </p>
         <button
           class="flex"
