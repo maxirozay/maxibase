@@ -20,7 +20,6 @@ const options = ref({
   hasPassword: false,
   hasTOTP: false,
   hasPasskey: false,
-  hasRecoveryCodes: false,
 })
 let isLoading = ref()
 
@@ -366,7 +365,7 @@ onBeforeUnmount(() => WebAuthnAbortService.cancelCeremony())
           {{ $t('authCheck.getCode') }}
         </button>
         <button
-          v-if="options.hasRecoveryCodes"
+          v-if="options.hasTOTP || options.hasPasskey"
           type="button"
           class="w"
           style="background: none; border: none; color: inherit"

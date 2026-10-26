@@ -4,12 +4,20 @@ import options from '#server-api/auth/options.post'
 
 const event = { body: { email: 'user@example.com' } } as any
 
-beforeEach(() => {
-  resetTestState()
-  vi.stubGlobal('countRecoveryCodes', async () => 0)
-})
+beforeEach(() => resetTestState())
 
 describe('POST /api/auth/options', () => {
+  // the sign-in form depends on it: a table it reads must not be one a missed migration lacks
+  it('reads only the user and their passkeys', async () => {
+    vi.stubGlobal('getAuth', async () => ({ id: 'user-1', password: 'hash', credentials: [] }))
+    expect(await options(event)).toEqual({
+      hasOTP: true,
+      hasPassword: true,
+      hasTOTP: false,
+      hasPasskey: false,
+    })
+  })
+
   it('answers with the defaults for an unknown email', async () => {
     vi.stubGlobal('getAuth', async () => {
       throw Object.assign(new Error('User not found'), { statusCode: 404 })
