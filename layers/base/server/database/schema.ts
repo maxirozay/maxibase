@@ -4,6 +4,7 @@ import {
   text,
   integer,
   timestamp,
+  date,
   uuid,
   boolean,
   primaryKey,
@@ -23,6 +24,7 @@ export const auth = authSchema.table('users', {
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   totp: text(),
   role: appRoleEnum().notNull().default('user'),
+  lastActiveOn: date({ mode: 'date' }).notNull().defaultNow(),
 })
 
 export const refreshTokens = authSchema.table('refresh_tokens', {

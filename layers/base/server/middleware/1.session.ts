@@ -10,5 +10,6 @@ export default defineEventHandler(async (event) => {
 
     const sessionData = await setSession(event, user, false)
     session.user = sessionData?.user // to update the session on SSR
+    await updateLastActive(user.id)
   } catch {}
 })

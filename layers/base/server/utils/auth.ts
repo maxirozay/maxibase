@@ -1,5 +1,5 @@
 import { auth, refreshTokens } from '#server/database/schema'
-import { eq, lte } from 'drizzle-orm'
+import { and, eq, lt, lte, sql } from 'drizzle-orm'
 import { createHash, randomBytes } from 'crypto'
 import type { H3Event } from 'h3'
 
@@ -162,8 +162,16 @@ export function hashRefreshToken(token: string) {
   return createHash('sha256').update(token).digest('base64url')
 }
 
+export async function updateLastActive(userId: string) {
+  await db
+    .update(auth)
+    .set({ lastActiveOn: sql`current_date` })
+    .where(and(eq(auth.id, userId), lt(auth.lastActiveOn, sql`current_date`)))
+}
+
 export async function createRefreshToken(userId: string, event: H3Event) {
   const token = generateRefreshToken()
+  await updateLastActive(userId)
 
   await db.insert(refreshTokens).values({
     userId,
