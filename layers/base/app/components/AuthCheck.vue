@@ -412,7 +412,6 @@ onBeforeUnmount(() => WebAuthnAbortService.cancelCeremony())
         <span class="text-center muted-text my1">{{ $t('or') }}</span>
         <button
           type="button"
-          :disabled="isLoading"
           class="provider flex-center g2 w mb1 fg b"
           style="font-weight: normal"
           @click="signInWithPasskey()"
