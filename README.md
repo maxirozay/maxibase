@@ -25,6 +25,18 @@ The tenant defaults to `organizations`: any work or school account, no personal 
 `/auth/microsoft` signs in with the Microsoft account already signed in, link to
 `/auth/microsoft?prompt=select_account` to let the user pick another one.
 
+### Resetting a user's second factor
+
+A user who lost their passkeys, authenticator app and recovery codes has no way back in. Remove
+their factors in the database, they sign in with their password or an email code and, under
+`NUXT_FORCE_MFA`, are asked to set up a new one:
+
+```sql
+UPDATE auth.users SET totp = NULL WHERE email = 'user@example.com';
+DELETE FROM auth.credentials WHERE user_id = (SELECT id FROM auth.users WHERE email = 'user@example.com');
+DELETE FROM auth.recovery_codes WHERE user_id = (SELECT id FROM auth.users WHERE email = 'user@example.com');
+```
+
 ## Deployment
 
 ### On your server
