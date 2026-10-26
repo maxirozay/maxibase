@@ -1,7 +1,7 @@
 export default defineTask({
   meta: {
     name: 'clean',
-    description: 'Clean old backups, logs and unfinished uploads',
+    description: 'Clean old backups, logs, unfinished uploads and inactive users',
   },
   async run() {
     const config = useRuntimeConfig()
@@ -9,6 +9,7 @@ export default defineTask({
     const steps: [string, () => Promise<unknown>][] = [['backups', cleanOldBackups]]
     if (config.s3.privateBucket) steps.push(['S3 backups', cleanOldS3Backups])
     steps.push(['logs', cleanLogs], ['uploads', () => cleanTempUploads()])
+    if (config.inactiveUsers.retentionDays > 0) steps.push(['inactive users', cleanInactiveUsers])
 
     const results = await Promise.allSettled(steps.map(([, step]) => step()))
 

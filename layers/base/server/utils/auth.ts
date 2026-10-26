@@ -169,6 +169,23 @@ export async function updateLastActive(userId: string) {
     .where(and(eq(auth.id, userId), lt(auth.lastActiveOn, sql`current_date`)))
 }
 
+export async function cleanInactiveUsers() {
+  const { retentionDays } = useRuntimeConfig().inactiveUsers
+
+  const deleted = await db
+    .delete(auth)
+    .where(lt(auth.lastActiveOn, sql`current_date - ${retentionDays}::int`))
+    .returning({ id: auth.id })
+
+  if (deleted.length) {
+    await log(
+      `Deleted ${deleted.length} users inactive for ${retentionDays} days`,
+      undefined,
+      'clean task',
+    )
+  }
+}
+
 export async function createRefreshToken(userId: string, event: H3Event) {
   const token = generateRefreshToken()
   await updateLastActive(userId)

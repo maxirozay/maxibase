@@ -37,6 +37,13 @@ DELETE FROM auth.credentials WHERE user_id = (SELECT id FROM auth.users WHERE em
 DELETE FROM auth.recovery_codes WHERE user_id = (SELECT id FROM auth.users WHERE email = 'user@example.com');
 ```
 
+### Deleting inactive users
+
+Each user's `last_active_on` is set to the day they last signed in or resumed a session. Set
+`NUXT_INACTIVE_USERS_RETENTION_DAYS` and the nightly `clean` task deletes the users inactive for
+longer, with everything that cascades from them. It is `0` by default, which keeps everyone.
+A deleted user stays in the backups until they age out.
+
 ## Deployment
 
 ### On your server

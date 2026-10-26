@@ -74,6 +74,9 @@ export default defineNuxtConfig({
     logs: {
       retentionDays: 90,
     },
+    inactiveUsers: {
+      retentionDays: 0, // delete users inactive for this many days, 0 keeps them forever
+    },
     rateLimit: {
       enabled: true,
       banMultiplier: 5, // banned after limit × multiplier requests in one window
