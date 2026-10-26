@@ -26,5 +26,6 @@
   "recoveryCodesRequireFactor": "Add a passkey or an authenticator app first.",
   "recoveryCodesSave": "Save these codes somewhere safe, they will not be shown again. Each code works once.",
   "recoveryCodesSaved": "I saved them",
-  "replaceRecoveryCodes": "Your current recovery codes will stop working. Generate new ones?"
+  "replaceRecoveryCodes": "Your current recovery codes will stop working. Generate new ones?",
+  "offerRecoveryCodes": "Generate recovery codes now? They let you sign in if you lose this device."
 }

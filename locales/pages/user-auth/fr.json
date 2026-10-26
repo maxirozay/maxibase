@@ -26,5 +26,6 @@
   "recoveryCodesRequireFactor": "Ajoutez d'abord une passkey ou une application d'authentification.",
   "recoveryCodesSave": "Conservez ces codes en lieu sûr, ils ne seront plus affichés. Chaque code ne fonctionne qu'une fois.",
   "recoveryCodesSaved": "Je les ai sauvegardés",
-  "replaceRecoveryCodes": "Vos codes de récupération actuels ne fonctionneront plus. En générer de nouveaux ?"
+  "replaceRecoveryCodes": "Vos codes de récupération actuels ne fonctionneront plus. En générer de nouveaux ?",
+  "offerRecoveryCodes": "Générer des codes de récupération maintenant ? Ils vous permettent de vous connecter si vous perdez cet appareil."
 }

@@ -74,9 +74,11 @@ const { register } = useWebAuthn({
 async function registerPasskey() {
   try {
     if (!(await checkAuth())) return
+    const isFirstFactor = !hasSecondFactor.value
     await register({ userName: user.value!.email! })
     await getAuth()
     appStore.notify('saved', 'success')
+    if (isFirstFactor) await offerRecoveryCodes()
     if (isMfaSetup.value) {
       await fetchUserSession()
       if (!user.value?.requiresMfaSetup) await navigateTo('/', { replace: true })
@@ -193,6 +195,7 @@ async function confirmTOTP() {
   if (TOTPCode.value.length !== 6) return
   try {
     if (!(await checkAuth())) return
+    const isFirstFactor = !hasSecondFactor.value
     await $fetch('/api/auth/totp/confirm', {
       method: 'POST',
       body: { secret: TOTPSecret.value, token: TOTPCode.value },
@@ -201,6 +204,7 @@ async function confirmTOTP() {
     TOTPCode.value = ''
     auth.value.hasTOTP = true
     showTOTP.value = false
+    if (isFirstFactor) await offerRecoveryCodes()
     if (isMfaSetup.value) {
       await fetchUserSession()
       if (!user.value?.requiresMfaSetup) await navigateTo('/', { replace: true })
@@ -235,6 +239,23 @@ async function generateRecoveryCodes() {
   } catch (e: any) {
     appStore.notify(e?.data?.message || e?.message, 'error')
   }
+}
+
+let recoveryCodesClosed: (() => void) | undefined
+
+function closeRecoveryCodes() {
+  recoveryCodes.value = []
+  recoveryCodesClosed?.()
+}
+
+// Resolves once the codes are closed, so the MFA setup redirect does not hide them
+async function offerRecoveryCodes() {
+  if (auth.value.recoveryCodes) return
+  if (!(await appStore.confirm($t('offerRecoveryCodes') as string))) return
+  await generateRecoveryCodes()
+  if (!recoveryCodes.value.length) return
+  await new Promise<void>((resolve) => (recoveryCodesClosed = resolve))
+  recoveryCodesClosed = undefined
 }
 
 async function deleteRefreshTokens() {
@@ -528,7 +549,7 @@ onMounted(getAuth)
           </button>
           <button
             class="ml"
-            @click="recoveryCodes = []"
+            @click="closeRecoveryCodes"
           >
             {{ $t('recoveryCodesSaved') }}
           </button>
