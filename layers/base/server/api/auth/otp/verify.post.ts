@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
 async function signUp(event: H3Event, email: string) {
   const session = await getUserSession(event)
   if (session?.user?.isAnonymous) return setAuth({ id: session.user.id, email })
-  if (useRuntimeConfig().autoSignup) return createAuth({ email })
+  if (useRuntimeConfig().autoSignup) return createAuth({ email }, event)
   throw createError({ status: 404, message: 'User not found' })
 }
 

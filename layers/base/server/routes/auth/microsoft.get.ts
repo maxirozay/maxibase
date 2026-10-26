@@ -15,7 +15,7 @@ async function onSuccess(event: H3Event, { tokens }: { tokens: any }) {
     const config = useRuntimeConfig()
 
     if (error.statusCode === 404 && config.autoSignup) {
-      return createAuth({ email: claims.email })
+      return createAuth({ email: claims.email }, event)
     }
     throw error
   })

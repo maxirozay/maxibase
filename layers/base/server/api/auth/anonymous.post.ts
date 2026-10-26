@@ -16,7 +16,10 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const insertedUsers = await db.insert(auth).values({}).returning()
+  const insertedUsers = await db
+    .insert(auth)
+    .values({ locale: useLocaleServerMiddleware(event).current })
+    .returning()
 
   if (!insertedUsers[0]) {
     throw createError({

@@ -45,11 +45,12 @@ export function requireUserVerification(userVerified: boolean) {
   }
 }
 
-export async function createAuth(user: Pick<AuthUser, 'email'>) {
+export async function createAuth(user: Pick<AuthUser, 'email'>, event: H3Event) {
   const insertedUsers = await db
     .insert(auth)
     .values({
       email: user.email?.trim().toLowerCase(),
+      locale: useLocaleServerMiddleware(event).current,
     })
     .returning()
   if (!insertedUsers[0]) {
