@@ -7,16 +7,11 @@ const bodySchema = z.object({
 export default defineEventHandler(async (event) => {
   const { email } = await readValidatedBody(event, bodySchema.parse)
 
-  try {
-    const user = await getAuth(event, email, true)
-    return {
-      hasOTP: true,
-      hasPassword: !!user.password,
-      hasTOTP: !!user.totp,
-      hasPasskey: user.credentials!.length > 0,
-      hasRecoveryCodes: (await countRecoveryCodes(user.id)) > 0,
-    }
-  } catch {
+  const user = await getAuth(event, email, true).catch((error: any) => {
+    if (error?.statusCode === 404) return null
+    throw error
+  })
+  if (!user) {
     return {
       hasOTP: true,
       hasPassword: false,
@@ -24,5 +19,13 @@ export default defineEventHandler(async (event) => {
       hasPasskey: false,
       hasRecoveryCodes: false,
     }
+  }
+
+  return {
+    hasOTP: true,
+    hasPassword: !!user.password,
+    hasTOTP: !!user.totp,
+    hasPasskey: user.credentials!.length > 0,
+    hasRecoveryCodes: (await countRecoveryCodes(user.id)) > 0,
   }
 })
