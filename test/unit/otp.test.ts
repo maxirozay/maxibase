@@ -170,7 +170,7 @@ describe('POST /api/auth/otp/verify', () => {
     setConfig({ autoSignup: true })
     seed()
     await verify()
-    expect(createAuth).toHaveBeenCalledWith({ email })
+    expect(createAuth).toHaveBeenCalledWith({ email }, expect.anything())
     expect(setSession).toHaveBeenCalledOnce()
   })
 })

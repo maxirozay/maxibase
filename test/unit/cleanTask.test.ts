@@ -9,6 +9,7 @@ const steps = {
   cleanOldS3Backups: vi.fn(),
   cleanLogs: vi.fn(),
   cleanTempUploads: vi.fn(),
+  cleanInactiveUsers: vi.fn(),
 }
 
 beforeEach(() => {
@@ -29,7 +30,14 @@ describe('clean task', () => {
     expect(steps.cleanOldS3Backups).not.toHaveBeenCalled()
     expect(steps.cleanLogs).toHaveBeenCalledOnce()
     expect(steps.cleanTempUploads).toHaveBeenCalledOnce()
+    expect(steps.cleanInactiveUsers).not.toHaveBeenCalled()
     expect(logSpy).not.toHaveBeenCalled()
+  })
+
+  it('deletes inactive users only when a retention is set', async () => {
+    setConfig({ inactiveUsers: { retentionDays: 730, warningDays: 30 } })
+    await task.run()
+    expect(steps.cleanInactiveUsers).toHaveBeenCalledOnce()
   })
 
   // The backup task keeps its server copy after uploading, so both places are cleaned.

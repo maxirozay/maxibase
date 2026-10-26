@@ -43,6 +43,8 @@ const db = {
       rows = rows.filter((row) => !matches(condition)(row))
     },
   }),
+  // updateLastActive, not under test here
+  update: () => ({ set: () => ({ where: async () => {} }) }),
 }
 
 beforeEach(() => {

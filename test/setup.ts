@@ -17,6 +17,7 @@ const defaultConfig = () => ({
   filesPrivateFolder: 'files/private',
   s3: { endpoint: '', accessKeyId: '' },
   rateLimit: { enabled: true, banMultiplier: 5, banSeconds: 3600 },
+  inactiveUsers: { retentionDays: 0, warningDays: 30 },
 })
 
 export let config: AnyRecord = defaultConfig()
