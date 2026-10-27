@@ -50,7 +50,7 @@ export async function createAuth(user: Pick<AuthUser, 'email'>, event: H3Event) 
     .insert(auth)
     .values({
       email: user.email?.trim().toLowerCase(),
-      locale: useLocaleServerMiddleware(event).current,
+      locale: event && useLocaleServerMiddleware(event).current,
     })
     .returning()
   if (!insertedUsers[0]) {
