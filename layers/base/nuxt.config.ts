@@ -142,9 +142,10 @@ export default defineNuxtConfig({
     },
   },
   hooks: {
-    'prepare:types': ({ references, sharedReferences }) => {
+    'prepare:types': ({ references, sharedReferences, nodeReferences }) => {
       references.push(authTypes)
       sharedReferences.push(authTypes)
+      nodeReferences.push(authTypes)
     },
     'nitro:prepare:types': ({ references }) => {
       references.push(authTypes)
