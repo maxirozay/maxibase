@@ -172,6 +172,9 @@ export async function updateLastActive(userId: string) {
 
 export async function cleanInactiveUsers() {
   const { retentionDays, warningDays } = useRuntimeConfig().inactiveUsers
+  if (!Number.isInteger(retentionDays) || retentionDays <= 0) {
+    throw new Error(`Inactive users: invalid retentionDays ${JSON.stringify(retentionDays)}`)
+  }
   const inactive = lt(auth.lastActiveOn, sql`current_date - ${retentionDays}::int`)
 
   const users = await db.select({ id: auth.id }).from(auth).where(inactive)

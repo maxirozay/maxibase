@@ -9,7 +9,7 @@ export default defineTask({
     const steps: [string, () => Promise<unknown>][] = [['backups', cleanOldBackups]]
     if (config.s3.privateBucket) steps.push(['S3 backups', cleanOldS3Backups])
     steps.push(['logs', cleanLogs], ['uploads', () => cleanTempUploads()])
-    if (config.inactiveUsers.retentionDays > 0) steps.push(['inactive users', cleanInactiveUsers])
+    if (config.inactiveUsers.retentionDays) steps.push(['inactive users', cleanInactiveUsers])
 
     const results = await Promise.allSettled(steps.map(([, step]) => step()))
 

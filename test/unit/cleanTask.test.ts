@@ -40,6 +40,22 @@ describe('clean task', () => {
     expect(steps.cleanInactiveUsers).toHaveBeenCalledOnce()
   })
 
+  it.each([null, undefined, ''])(
+    'skips inactive users with retentionDays %j',
+    async (retentionDays) => {
+      setConfig({ inactiveUsers: { retentionDays, warningDays: 30 } })
+      await task.run()
+      expect(steps.cleanInactiveUsers).not.toHaveBeenCalled()
+    },
+  )
+
+  // Not skipped silently, so the misconfiguration shows up in the logs
+  it('runs inactive users with an invalid retentionDays', async () => {
+    setConfig({ inactiveUsers: { retentionDays: true, warningDays: 30 } })
+    await task.run()
+    expect(steps.cleanInactiveUsers).toHaveBeenCalledOnce()
+  })
+
   // The backup task keeps its server copy after uploading, so both places are cleaned.
   it('also cleans the S3 backups with a private bucket', async () => {
     withS3()

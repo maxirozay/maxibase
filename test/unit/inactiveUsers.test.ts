@@ -94,6 +94,15 @@ describe('cleanInactiveUsers', () => {
     expect(deleted).toEqual(['ok'])
   })
 
+  it.each([0, -1, 1.5, true, '30', null, Infinity])(
+    'refuses to run with retentionDays %j',
+    async (retentionDays) => {
+      setConfig({ inactiveUsers: { retentionDays, warningDays: 30 } })
+      await expect(cleanInactiveUsers()).rejects.toThrow('Inactive users: invalid retentionDays')
+      expect(db.select).not.toHaveBeenCalled()
+    },
+  )
+
   it('deletes nothing when no user is past the limit', async () => {
     await cleanInactiveUsers()
     expect(db.delete).not.toHaveBeenCalled()
