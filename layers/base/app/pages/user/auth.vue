@@ -153,7 +153,7 @@ async function setPassword() {
     if (!(await checkAuth())) return
     await $fetch('/api/auth', {
       method: 'POST',
-      body: { password: password1.value },
+      body: { password: password1.value, locale: $getLocale() },
     })
     password1.value = ''
     password2.value = ''
