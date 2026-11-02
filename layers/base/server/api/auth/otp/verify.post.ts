@@ -1,5 +1,7 @@
+import { createError, defineEventHandler, readValidatedBody, useRuntimeConfig } from 'nuxt/server'
+import { useKV } from 'nitro/kv'
 import { z } from 'zod'
-import type { H3Event } from 'h3'
+import type { RequestEvent } from 'nuxt/server'
 import type { OTP } from './get.post'
 
 const bodySchema = z.object({
@@ -20,7 +22,7 @@ export default defineEventHandler(async (event) => {
   return setSession(event, user)
 })
 
-async function signUp(event: H3Event, email: string) {
+async function signUp(event: RequestEvent, email: string) {
   const session = await getUserSession(event)
   if (session?.user?.isAnonymous) return setAuthUserEmail(session.user.id, email)
   if (useRuntimeConfig().autoSignup) return createAuthUser(event, { email })
@@ -44,7 +46,7 @@ export async function verifyOTP(email: string, otp: string, consume = true): Pro
 }
 
 async function checkOTP(email: string, otp: string, consume: boolean) {
-  const storage = useStorage('auth')
+  const storage = useKV('auth')
   const record = await storage.getItem<OTP>(email)
   if (!record) {
     throw createError({ status: 400, message: 'Request a new OTP.' })

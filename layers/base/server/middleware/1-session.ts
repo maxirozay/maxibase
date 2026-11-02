@@ -1,3 +1,5 @@
+import { defineEventHandler, getCookie } from 'nuxt/server'
+
 export default defineEventHandler(async (event) => {
   const existingToken = getCookie(event, 'refresh_token')
   if (!existingToken) return

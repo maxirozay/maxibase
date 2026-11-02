@@ -1,3 +1,5 @@
+import { createError } from 'nuxt/server'
+
 export async function checkFileAccess(event: any, path: string) {
   const { user } = await requireUserSession(event)
   if (!user) throw createError({ status: 401, message: 'Unauthorized' })

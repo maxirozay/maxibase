@@ -1,7 +1,8 @@
+import { createError, deleteCookie, getCookie, setCookie, useRuntimeConfig } from 'nuxt/server'
 import { authUsers, authRefreshTokens } from '#server/database/schema'
 import { and, eq, inArray, isNotNull, isNull, lt, lte, or, sql } from 'drizzle-orm'
 import { createHash, randomBytes } from 'crypto'
-import type { H3Event } from 'h3'
+import type { RequestEvent } from 'nuxt/server'
 
 type AuthUser = typeof authUsers.$inferSelect
 type SessionUser = Pick<AuthUser, 'id'> & Partial<Pick<AuthUser, 'email' | 'role'>>
@@ -46,12 +47,14 @@ export function requireUserVerification(userVerified: boolean) {
 }
 
 // Without an email, the user is anonymous
-export async function createAuthUser(event: H3Event, { email }: { email?: string } = {}) {
+export async function createAuthUser(event: RequestEvent, { email }: { email?: string } = {}) {
   const insertedUsers = await db
     .insert(authUsers)
     .values({
       email: email?.trim().toLowerCase(),
-      locale: useLocaleServerMiddleware(event).current,
+      // typed for h3 v1's event, Nuxt's Nitro v2 compatibility runs it on this one
+      locale: useLocaleServerMiddleware(event as Parameters<typeof useLocaleServerMiddleware>[0])
+        .current,
     })
     .returning()
   if (!insertedUsers[0]) {
@@ -83,7 +86,7 @@ export async function setAuthUserEmail(id: string, email: string) {
 type UserQueryOptions = { withCredentials?: boolean }
 
 export async function requireAuthUser(
-  event: H3Event,
+  event: RequestEvent,
   { withCredentials = false }: UserQueryOptions = {},
 ) {
   const id = (await getUserSession(event)).user?.id
@@ -118,7 +121,7 @@ export function findAuthUserByEmail(
 }
 
 // refresh: false keeps the refresh token and authenticatedAt, to update the session data only
-export async function setSession(event: H3Event, user: SessionUser, { refresh = true } = {}) {
+export async function setSession(event: RequestEvent, user: SessionUser, { refresh = true } = {}) {
   if (refresh) {
     if (useRuntimeConfig().session.unique) {
       await revokeAllUserTokens(user.id)
@@ -151,7 +154,7 @@ export async function setSession(event: H3Event, user: SessionUser, { refresh = 
   })
 }
 
-export async function requireRecentAuth(event: H3Event) {
+export async function requireRecentAuth(event: RequestEvent) {
   const session = await requireUserSession(event)
 
   if (session.user.isAnonymous) return session
@@ -268,7 +271,7 @@ async function warnInactiveUsers(retentionDays: number, warningDays: number) {
   return failed
 }
 
-export async function createRefreshToken(userId: string, event: H3Event) {
+export async function createRefreshToken(userId: string, event: RequestEvent) {
   const token = generateRefreshToken()
   await updateLastActive(userId)
 
@@ -288,7 +291,7 @@ export async function createRefreshToken(userId: string, event: H3Event) {
   return token
 }
 
-export async function verifyRefreshToken(event: H3Event) {
+export async function verifyRefreshToken(event: RequestEvent) {
   const existingToken = getCookie(event, 'refresh_token')
   if (!existingToken) {
     throw createError({

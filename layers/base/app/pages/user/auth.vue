@@ -316,7 +316,7 @@ onMounted(getAuth)
               />
               <button
                 class="flex-center fg"
-                :title="$t('changeEmail')"
+                :title="$t('changeEmail') as string"
                 :disabled="isCurrentEmail"
                 type="submit"
               >
@@ -385,7 +385,7 @@ onMounted(getAuth)
               </button>
               <button
                 class="fg flex-center"
-                :title="$t('changePassword')"
+                :title="$t('changePassword') as string"
                 type="submit"
                 :disabled="!isPasswordValid"
               >
@@ -466,7 +466,7 @@ onMounted(getAuth)
               type="button"
               class="bg danger-text flex-center"
               :disabled="!canRemovePasskey"
-              :title="canRemovePasskey ? '' : $t('lastFactor')"
+              :title="canRemovePasskey ? '' : ($t('lastFactor') as string)"
               @click="deletePasskey(credential.id)"
             >
               <Icon name="lucide:trash" />
@@ -477,7 +477,11 @@ onMounted(getAuth)
         <button
           class="flex mt1 mb2"
           :disabled="auth?.credentials.length >= 4"
-          :title="auth?.credentials.length >= 4 ? $t('passkeyLimit') : $t('registerPasskey')"
+          :title="
+            auth?.credentials.length >= 4
+              ? ($t('passkeyLimit') as string)
+              : ($t('registerPasskey') as string)
+          "
           @click="registerPasskey"
         >
           {{ $t('registerPasskey') }}
@@ -490,7 +494,7 @@ onMounted(getAuth)
           class="ml1"
           :checked="!!auth?.hasTOTP"
           :disabled="!canDisableTOTP"
-          :title="canDisableTOTP ? '' : $t('lastFactor')"
+          :title="canDisableTOTP ? '' : ($t('lastFactor') as string)"
           @click.prevent="toggleTOTP"
         />
 
@@ -507,7 +511,7 @@ onMounted(getAuth)
         <button
           class="flex"
           :disabled="!hasSecondFactor"
-          :title="hasSecondFactor ? '' : $t('recoveryCodesRequireFactor')"
+          :title="hasSecondFactor ? '' : ($t('recoveryCodesRequireFactor') as string)"
           @click="generateRecoveryCodes"
         >
           {{ $t('generateRecoveryCodes') }}

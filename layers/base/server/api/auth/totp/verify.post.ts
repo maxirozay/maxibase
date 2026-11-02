@@ -1,10 +1,12 @@
+import { createError, defineEventHandler, readValidatedBody } from 'nuxt/server'
+import { useKV } from 'nitro/kv'
 import { z } from 'zod'
 import { verify } from 'otplib'
-import type { H3Event } from 'h3'
+import type { RequestEvent } from 'nuxt/server'
 import { verifyOTP } from '../otp/verify.post'
 
 export async function verifyFirstFactor(
-  event: H3Event,
+  event: RequestEvent,
   email: string,
   { password, otp }: { password?: string; otp?: string },
 ) {
@@ -48,7 +50,7 @@ export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'totp', { limit: 5, window: 900 }, user.id)
 
   if ((await verify({ secret: user.totp, token })).valid) {
-    if (otp) await useStorage('auth').removeItem(email)
+    if (otp) await useKV('auth').removeItem(email)
     await setSession(event, user)
   } else throw createError({ status: 400, message: 'Invalid TOTP.' })
 })

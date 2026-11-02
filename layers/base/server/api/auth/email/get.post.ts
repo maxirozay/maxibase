@@ -1,3 +1,5 @@
+import { createError, defineEventHandler, readValidatedBody } from 'nuxt/server'
+import { useKV } from 'nitro/kv'
 import { z } from 'zod'
 import { generateOTP, type OTP } from '../otp/get.post'
 
@@ -19,7 +21,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ status: 400, message: 'This is already your email address.' })
   }
 
-  const storage = useStorage('auth')
+  const storage = useKV('auth')
   const key = emailChangeKey(user.id, email)
   const record = await storage.getItem<OTP>(key)
   if (record && Date.now() < record.sentAt + 60000) {

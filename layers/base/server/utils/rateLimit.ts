@@ -1,4 +1,5 @@
-import type { H3Event } from 'h3'
+import { createError, useRuntimeConfig } from 'nuxt/server'
+import type { RequestEvent } from 'nuxt/server'
 import { isIPv6 } from 'node:net'
 
 export interface RateLimitRule {
@@ -22,7 +23,7 @@ setInterval(() => {
   }
 }, SWEEP_INTERVAL).unref?.()
 
-async function getId(event: H3Event): Promise<string> {
+async function getId(event: RequestEvent): Promise<string> {
   const { user } = await getUserSession(event)
   if (user) return user.id
   return rateLimitIP(getClientIP(event))
@@ -53,7 +54,7 @@ export function rateLimitIP(ip: string): string {
 }
 
 export async function enforceRateLimit(
-  event: H3Event,
+  event: RequestEvent,
   route: string,
   rule: RateLimitRule,
   id?: string,
@@ -90,8 +91,8 @@ export async function enforceRateLimit(
   throw tooManyRequests(event, entry.resetAt - now)
 }
 
-function tooManyRequests(event: H3Event, retryAfterMS: number) {
-  setResponseHeader(event, 'Retry-After', Math.ceil(retryAfterMS / 1000))
+function tooManyRequests(event: RequestEvent, retryAfterMS: number) {
+  event.res.headers.set('Retry-After', String(Math.ceil(retryAfterMS / 1000)))
   return createError({
     status: 429,
     message: 'Too many requests',

@@ -1,3 +1,10 @@
+import {
+  createError,
+  getRequestHeader,
+  sendRedirect,
+  setResponseStatus,
+  useRuntimeConfig,
+} from 'nuxt/server'
 import { join, dirname, basename } from 'path'
 import {
   mkdir,
@@ -30,7 +37,7 @@ import { checkFileAccess } from '#database/access'
 import { createReadStream, createWriteStream } from 'fs'
 import { pipeline } from 'stream/promises'
 import { Readable } from 'stream'
-import type { H3Event } from 'h3'
+import type { RequestEvent } from 'nuxt/server'
 import { createHash } from 'crypto'
 import mime from 'mime'
 
@@ -59,16 +66,16 @@ function fileTooLarge() {
   return createError({ status: 413, message: `File too large, max ${maxSize} MB` })
 }
 
-export async function readUploadBody(event: H3Event, maxMB: number) {
+export async function readUploadBody(event: RequestEvent, maxMB: number) {
   await requireUserSession(event)
   const length = getRequestHeader(event, 'content-length')
   if (!length) throw createError({ status: 411, message: 'Content-Length required' })
   if (Number(length) > (maxMB + 1) * MB) throw fileTooLarge()
-  return readFormData(event).catch(() => undefined)
+  return event.req.formData().catch(() => undefined)
 }
 
 export async function uploadFile(
-  event: H3Event,
+  event: RequestEvent,
   file: File,
   { path = 'files', isPrivate = true, maxAge }: UploadOptions = {},
 ) {
@@ -97,7 +104,7 @@ export async function uploadFile(
 
 // Same as uploadFile but for a file the server produces itself
 export async function uploadStream(
-  event: H3Event,
+  event: RequestEvent,
   file: { stream: Readable; filename?: string; type?: string },
   { path = 'files', isPrivate = true, maxAge }: UploadOptions = {},
 ) {
@@ -134,7 +141,7 @@ function isUUID(value: string) {
 }
 
 export async function uploadChunk(
-  event: H3Event,
+  event: RequestEvent,
   {
     uploadId,
     chunkIndex,
@@ -323,7 +330,7 @@ export function parseRangeHeader(range: string | undefined, size: number) {
 }
 
 export async function getFile(
-  event: H3Event,
+  event: RequestEvent,
   path: string,
   {
     isPrivate = true,
@@ -333,8 +340,8 @@ export async function getFile(
 ) {
   await checkFileAccess(event, path)
   path = getSecurePath(path, isPrivate)
-  setHeader(event, 'X-Content-Type-Options', 'nosniff')
-  setHeader(event, 'Content-Security-Policy', 'sandbox')
+  event.res.headers.set('X-Content-Type-Options', 'nosniff')
+  event.res.headers.set('Content-Security-Policy', 'sandbox')
 
   const range = getRequestHeader(event, 'range')
 
@@ -342,7 +349,7 @@ export async function getFile(
     const url = await getS3SignedUrl(getS3Key(path), { expireIn, isPrivate })
 
     if (redirect ?? useRuntimeConfig().s3.redirect) {
-      setHeader(event, 'Cache-Control', 'no-store')
+      event.res.headers.set('Cache-Control', 'no-store')
       return sendRedirect(event, url, 302)
     }
 
@@ -350,7 +357,7 @@ export async function getFile(
 
     if (response.status === 416) {
       const contentRange = response.headers.get('content-range')
-      if (contentRange) setHeader(event, 'Content-Range', contentRange)
+      if (contentRange) event.res.headers.set('Content-Range', contentRange)
       throw createError({ status: 416, message: 'Range not satisfiable' })
     }
     if (response.status === 404) throw createError({ status: 404, message: 'File not found' })
@@ -363,7 +370,7 @@ export async function getFile(
       'Accept-Ranges': response.headers.get('accept-ranges') || 'bytes',
     }
     for (const [name, value] of Object.entries(passthrough)) {
-      if (value) setHeader(event, name, value)
+      if (value) event.res.headers.set(name, value)
     }
     if (response.status === 206) setResponseStatus(event, 206)
 
@@ -377,30 +384,30 @@ export async function getFile(
     throw createError({ status: 404, message: 'File not found' })
   }
 
-  setHeader(event, 'Content-Type', mime.getType(fullPath) || 'application/octet-stream')
-  setHeader(event, 'Accept-Ranges', 'bytes')
+  event.res.headers.set('Content-Type', mime.getType(fullPath) || 'application/octet-stream')
+  event.res.headers.set('Accept-Ranges', 'bytes')
 
   const parsedRange = parseRangeHeader(range, stats.size)
   if (parsedRange === 'unsatisfiable') {
-    setHeader(event, 'Content-Range', `bytes */${stats.size}`)
+    event.res.headers.set('Content-Range', `bytes */${stats.size}`)
     throw createError({ status: 416, message: 'Range not satisfiable' })
   }
 
   if (parsedRange) {
     const { start, end } = parsedRange
     setResponseStatus(event, 206)
-    setHeader(event, 'Content-Range', `bytes ${start}-${end}/${stats.size}`)
-    setHeader(event, 'Content-Length', end - start + 1)
+    event.res.headers.set('Content-Range', `bytes ${start}-${end}/${stats.size}`)
+    event.res.headers.set('Content-Length', String(end - start + 1))
     return Readable.toWeb(createReadStream(fullPath, { start, end }))
   }
 
-  setHeader(event, 'Content-Length', stats.size)
+  event.res.headers.set('Content-Length', String(stats.size))
   // h3 v2 only streams web streams
   return Readable.toWeb(createReadStream(fullPath))
 }
 
 export async function deletePath(
-  event: H3Event,
+  event: RequestEvent,
   path: string,
   { isPrivate = true }: FileOptions = {},
 ) {
@@ -452,7 +459,7 @@ type ListedFile = {
 }
 
 export async function listFolder(
-  event: H3Event,
+  event: RequestEvent,
   path: string,
   { isPrivate = true }: FileOptions = {},
 ): Promise<ListedFile[]> {
@@ -483,7 +490,7 @@ async function listLocal(path: string, isPrivate: boolean): Promise<ListedFile[]
 }
 
 export async function copyFile(
-  event: H3Event,
+  event: RequestEvent,
   src: string,
   dest: string,
   { isPrivate = true, deleteSrc = false }: CopyOptions = {},
@@ -512,7 +519,7 @@ export async function copyFile(
 }
 
 export async function copyFiles(
-  event: H3Event,
+  event: RequestEvent,
   src: string,
   dest: string,
   { isPrivate = true, deleteSrc = false }: CopyOptions = {},

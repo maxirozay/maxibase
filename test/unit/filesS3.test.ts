@@ -21,7 +21,7 @@ import {
 // upload in this file goes to S3.
 
 const send = vi.spyOn(S3Client.prototype, 'send')
-const event = {} as any
+const event = { res: { headers: new Headers() } } as any
 
 beforeEach(() => {
   resetTestState()

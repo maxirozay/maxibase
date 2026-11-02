@@ -1,3 +1,5 @@
+import { createError, defineEventHandler } from 'nuxt/server'
+
 export default defineEventHandler(async (event) => {
   await requireRecentAuth(event)
   const user = await requireAuthUser(event, { withCredentials: true })

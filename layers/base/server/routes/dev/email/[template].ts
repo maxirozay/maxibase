@@ -1,3 +1,5 @@
+import { createError, defineEventHandler, getQuery, getRouterParam } from 'nuxt/server'
+
 export default defineEventHandler(async (event) => {
   if (!import.meta.dev) {
     throw createError({

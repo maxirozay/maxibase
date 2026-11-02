@@ -1,9 +1,9 @@
 import { vi } from 'vitest'
 import { emailSchema, otpSchema } from '#server-utils/schemas'
 
-// The layer's server code runs on Nitro's auto-imports, which are plain globals
-// at runtime. These stubs stand in for them so the units under test can be
-// imported directly, without booting a Nuxt server or a database.
+// The layer's own utils are auto-imports, plain globals at runtime, and test/stubs/server.ts
+// forwards nuxt/server and nitro/* here too. These stubs stand in for them so the units
+// under test can be imported directly, without booting a Nuxt server or a database.
 
 type AnyRecord = Record<string, any>
 
@@ -66,7 +66,7 @@ Object.assign(globalThis, {
   },
   getClientIP: (event: AnyRecord) => event?.ip ?? '203.0.113.1',
   log: logSpy,
-  useStorage: (base: string) => ({
+  useKV: (base: string) => ({
     getItem: async (key: string) => structuredClone(storage.get(`${base}:${key}`) ?? null),
     setItem: async (key: string, value: unknown) =>
       void storage.set(`${base}:${key}`, structuredClone(value)),
@@ -77,11 +77,9 @@ Object.assign(globalThis, {
   verifyPassword: async (hash: string, value: string) => hash === `hashed:${value}`,
   readValidatedBody: async (event: AnyRecord, parse: (body: unknown) => unknown) =>
     parse(event?.body),
-  getRequestURL: (event: AnyRecord) => new URL(event?.path ?? '/', 'https://app.test'),
-  setResponseHeader: vi.fn(),
-  setHeader: vi.fn(),
   setResponseStatus: vi.fn(),
   getRequestHeader: vi.fn(),
-  readFormData: vi.fn(async () => new FormData()),
   sendRedirect: vi.fn(),
+  definePlugin: (plugin: unknown) => plugin,
+  defineTask: (task: unknown) => task,
 })

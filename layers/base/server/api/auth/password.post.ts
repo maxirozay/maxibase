@@ -1,3 +1,4 @@
+import { createError, defineEventHandler, readValidatedBody } from 'nuxt/server'
 import { z } from 'zod'
 
 function badCredentials() {

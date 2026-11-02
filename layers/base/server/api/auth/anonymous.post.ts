@@ -1,3 +1,5 @@
+import { createError, defineEventHandler, useRuntimeConfig } from 'nuxt/server'
+
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
   const session = await getUserSession(event)

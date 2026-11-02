@@ -1,10 +1,11 @@
+import { defineEventHandler, useRuntimeConfig } from 'nuxt/server'
 import type { RateLimitRule } from '../utils/rateLimit'
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
   if (!config.rateLimit.enabled) return
 
-  const path = event.path.split('?')[0]!
+  const path = event.url.pathname
   const routes = config.rateLimit.routes as Record<string, RateLimitRule>
 
   let matchedRoute = ''

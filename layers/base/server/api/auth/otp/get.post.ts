@@ -1,3 +1,5 @@
+import { createError, defineEventHandler, readValidatedBody, useRuntimeConfig } from 'nuxt/server'
+import { useKV } from 'nitro/kv'
 import { z } from 'zod'
 import crypto from 'crypto'
 
@@ -23,7 +25,7 @@ export default defineEventHandler(async (event) => {
     path = 'signin',
   } = await readValidatedBody(event, bodySchema.parse)
 
-  const storage = useStorage('auth')
+  const storage = useKV('auth')
   const record = await storage.getItem<OTP>(email)
   if (record && Date.now() < record.sentAt! + 60000) {
     throw createError({ status: 400, message: 'Wait a minute before requesting a new OTP.' })

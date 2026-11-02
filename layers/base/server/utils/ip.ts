@@ -1,6 +1,7 @@
-import type { H3Event } from 'h3'
+import { getRequestHeader, getRequestIP, useRuntimeConfig } from 'nuxt/server'
+import type { RequestEvent } from 'nuxt/server'
 
-export function getClientIP(event: H3Event): string {
+export function getClientIP(event: RequestEvent): string {
   const { trustedProxies } = useRuntimeConfig().rateLimit
 
   // A client can send any x-forwarded-for it likes, so only the entries appended by our own

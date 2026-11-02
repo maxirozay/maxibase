@@ -1,14 +1,16 @@
+import { createError, defineEventHandler } from 'nuxt/server'
+import { useKV } from 'nitro/kv'
 import { z } from 'zod'
 import { authCredentials } from '#server/database/schema'
 
 const registerHandler = defineWebAuthnRegisterEventHandler({
   async storeChallenge(event, challenge, attemptId) {
-    await useStorage('auth').setItem(`attempt:${attemptId}`, challenge)
+    await useKV('auth').setItem(`attempt:${attemptId}`, challenge)
   },
   async getChallenge(event, attemptId) {
-    const challenge = await useStorage('auth').getItem(`attempt:${attemptId}`)
+    const challenge = await useKV('auth').getItem(`attempt:${attemptId}`)
 
-    await useStorage('auth').removeItem(`attempt:${attemptId}`)
+    await useKV('auth').removeItem(`attempt:${attemptId}`)
 
     if (!challenge) throw createError({ status: 400, message: 'Challenge expired' })
 

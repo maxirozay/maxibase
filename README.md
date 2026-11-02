@@ -200,7 +200,7 @@ export default defineNuxtConfig({
 | Path                   | Role                                                                                                             |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | `layers/base`          | the layer itself: pages, components, API routes, utils, shared types. Not meant to be edited                     |
-| `nuxt.config.ts`       | default route rules, rate limits, i18n and head config. Your config overrides it                                 |
+| `nuxt.config.mjs`      | default route rules, rate limits, i18n and head config. Your config overrides it                                 |
 | `locales`              | default translations. Your `locales` files are merged on top, key by key                                         |
 | `server/assets/emails` | default email templates. A template in your `server/assets/emails` replaces the package's one with the same path |
 | `scripts`              | deploy, rollback and DB scripts, run from `node_modules` (see `package.json` below)                              |
@@ -219,17 +219,17 @@ i18n: { locales: [{ code: 'fr' }, { code: 'en', disabled: true }], defaultLocale
 
 Copy only these files from this repo, the rest comes from the package:
 
-| Path                                                 | Notes                                                                         |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `nuxt.config.ts`                                     | replace `extends: ['./layers/base']` with `extends: ['maxibase']`             |
-| `package.json`                                       | use the one below instead                                                     |
-| `tsconfig.json`, `pnpm-workspace.yaml`, `.gitignore` | as they are                                                                   |
-| `.env.example`                                       | fill it in and rename it to `.env`                                            |
-| `drizzle.config.ts`                                  | used by the `db:*` scripts                                                    |
-| `server/database/schema.ts`                          | re-exports the layer's tables, add yours below                                |
-| `app/assets/css/index.css`                           | required by the `css` entry of the package config                             |
-| `app/components/TheHeader.vue`, `TheFooter.vue`      | required by the `default` layout                                              |
-| `app/pages/index.vue`                                | replace the example with your home page, the layer links to the `index` route |
+| Path                                                 | Notes                                                                                          |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `nuxt.config.mjs`                                    | save it as `nuxt.config.ts`, replace `extends: ['./layers/base']` with `extends: ['maxibase']` |
+| `package.json`                                       | use the one below instead                                                                      |
+| `tsconfig.json`, `pnpm-workspace.yaml`, `.gitignore` | as they are                                                                                    |
+| `.env.example`                                       | fill it in and rename it to `.env`                                                             |
+| `drizzle.config.ts`                                  | used by the `db:*` scripts                                                                     |
+| `server/database/schema.ts`                          | re-exports the layer's tables, add yours below                                                 |
+| `app/assets/css/index.css`                           | required by the `css` entry of the package config                                              |
+| `app/components/TheHeader.vue`, `TheFooter.vue`      | required by the `default` layout                                                               |
+| `app/pages/index.vue`                                | replace the example with your home page, the layer links to the `index` route                  |
 
 And only if you need them:
 
@@ -282,7 +282,7 @@ A project's `package.json` looks like this. Add any package your own files impor
     "db:push": "drizzle-kit push",
     "db:push-prod": "bash node_modules/maxibase/scripts/db/push-server.sh",
     "db:restore": "bash node_modules/maxibase/scripts/db/restore.sh",
-    "db:migrate": "npx jiti node_modules/maxibase/scripts/db/migrate.ts",
+    "db:migrate": "node node_modules/maxibase/scripts/db/migrate.mjs",
     "db:studio": "drizzle-kit studio",
     "lint": "oxlint",
     "fmt": "oxfmt",
@@ -292,7 +292,9 @@ A project's `package.json` looks like this. Add any package your own files impor
     "drizzle-orm": "1.0.0-rc.5",
     "goku-css": "^9.0.8",
     "maxibase": "^1.0.0",
-    "nuxt": "^4.6.0"
+    "nuxt": "^4.6.0",
+    "vue": "^3.5.44",
+    "vue-router": "^5.4.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
