@@ -1,4 +1,4 @@
-import { auth } from '#server/database/schema'
+import { authUsers } from '#server/database/schema'
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const insertedUsers = await db
-    .insert(auth)
+    .insert(authUsers)
     .values({ locale: useLocaleServerMiddleware(event).current })
     .returning()
 

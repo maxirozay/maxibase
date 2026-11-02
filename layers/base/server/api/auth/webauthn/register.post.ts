@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { credentials } from '#server/database/schema'
+import { authCredentials } from '#server/database/schema'
 
 const registerHandler = defineWebAuthnRegisterEventHandler({
   async storeChallenge(event, challenge, attemptId) {
@@ -35,7 +35,7 @@ const registerHandler = defineWebAuthnRegisterEventHandler({
     requireUserVerification(registrationInfo.userVerified)
 
     const session = await requireUserSession(event)
-    await db.insert(credentials).values({
+    await db.insert(authCredentials).values({
       name: new Date().toISOString().substring(0, 10),
       userId: session.user.id,
       id: credential.id,

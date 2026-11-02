@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { auth, credentials } from '#server/database/schema'
+import { authUsers, authCredentials } from '#server/database/schema'
 
 const bodySchema = z.object({
   credentialId: z.string().min(1),
@@ -13,31 +13,31 @@ export default defineEventHandler(async (event) => {
 
   if (!useRuntimeConfig().forceMfa) {
     await db
-      .delete(credentials)
-      .where(and(eq(credentials.id, credentialId), eq(credentials.userId, userId)))
+      .delete(authCredentials)
+      .where(and(eq(authCredentials.id, credentialId), eq(authCredentials.userId, userId)))
     return
   }
 
   await db.transaction(async (tx) => {
     const [locked] = await tx
-      .select({ totp: auth.totp })
-      .from(auth)
-      .where(eq(auth.id, userId))
+      .select({ totp: authUsers.totp })
+      .from(authUsers)
+      .where(eq(authUsers.id, userId))
       .for('update')
     if (!locked) {
       throw createError({ status: 404, message: 'User not found' })
     }
 
     const remaining = await tx
-      .select({ id: credentials.id })
-      .from(credentials)
-      .where(eq(credentials.userId, userId))
+      .select({ id: authCredentials.id })
+      .from(authCredentials)
+      .where(eq(authCredentials.userId, userId))
     if (!locked.totp && remaining.length <= 1) {
       throw createError({ status: 400, message: 'Keep at least one second factor.' })
     }
 
     await tx
-      .delete(credentials)
-      .where(and(eq(credentials.id, credentialId), eq(credentials.userId, userId)))
+      .delete(authCredentials)
+      .where(and(eq(authCredentials.id, credentialId), eq(authCredentials.userId, userId)))
   })
 })

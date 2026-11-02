@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { resetTestState, setConfig, storage } from '../setup'
-import { recoveryCodes } from '#server/database/schema'
+import { authRecoveryCodes } from '#server/database/schema'
 import { passwordSchema } from '#server-utils/schemas'
 import {
   generateRecoveryCodes,
@@ -23,7 +23,7 @@ let rows: Row[] = []
 
 const matches = (conditions: Condition[]) => (row: Row) =>
   conditions.every(({ column, value }) =>
-    column === recoveryCodes.userId ? row.userId === value : row.code === value,
+    column === authRecoveryCodes.userId ? row.userId === value : row.code === value,
   )
 
 function remove(conditions: Condition[]) {

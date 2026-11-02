@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm/sql/expressions/conditions'
 import { z } from 'zod'
-import { auth } from '#server/database/schema'
+import { authUsers } from '#server/database/schema'
 
 export default defineEventHandler(async (event) => {
   const { password, locale = 'en' } = await readValidatedBody(
@@ -12,11 +12,11 @@ export default defineEventHandler(async (event) => {
   )
   const { user } = await requireRecentAuth(event)
   await db
-    .update(auth)
+    .update(authUsers)
     .set({
       password: await hashPassword(password),
     })
-    .where(eq(auth.id, user.id))
+    .where(eq(authUsers.id, user.id))
 
   await log('Password changed', { type: 'security', event })
 

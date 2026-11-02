@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { resetTestState, setConfig } from '../setup'
-import { refreshTokens } from '#server/database/schema'
+import { authRefreshTokens } from '#server/database/schema'
 import {
   createRefreshToken,
   verifyRefreshToken,
@@ -27,18 +27,18 @@ const matches =
   ({ column, value, lte }: Condition) =>
   (row: Row) =>
     lte
-      ? column === refreshTokens.createdAt && row.createdAt <= value
-      : column === refreshTokens.token && row.token === value
+      ? column === authRefreshTokens.createdAt && row.createdAt <= value
+      : column === authRefreshTokens.token && row.token === value
 
 const hoursAgo = (hours: number) => new Date(Date.now() - hours * 3600 * 1000)
 
 const db = {
   query: {
-    refreshTokens: {
+    authRefreshTokens: {
       findFirst: async ({ where }: { where: { token: string } }) =>
         rows.find((row) => row.token === where.token),
     },
-    auth: { findFirst: async () => ({ id: 'user-1' }) },
+    authUsers: { findFirst: async () => ({ id: 'user-1' }) },
   },
   insert: () => ({
     values: async (value: Omit<Row, 'createdAt'>) =>

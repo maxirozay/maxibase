@@ -249,6 +249,9 @@ The tables of the `auth` schema ship with the layer, in `layers/base/server/data
 Your `server/database/schema.ts` re-exports them and adds your own tables, so `pnpm update maxibase`
 brings their changes: run `pnpm db:generate` after an update. To customise one, copy it into your
 schema, a table declared in your file takes precedence over the package's one with the same name.
+Their exports are prefixed with `auth` (`authUsers`, `authLogs`, `authCredentials`,
+`authRefreshTokens`, `authRecoveryCodes`) so a table of your own, like a `users` or `logs`, never
+replaces one of them by accident.
 Their relations come from `authRelations` in `layers/base/server/database/relations.ts`. To add a
 relation to one of these tables, define the table in your `relations.ts`: your entry replaces the
 layer's for that table, so repeat the layer's relations you still need there.

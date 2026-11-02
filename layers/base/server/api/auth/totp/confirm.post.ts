@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm'
-import { auth } from '#server/database/schema'
+import { authUsers } from '#server/database/schema'
 import { z } from 'zod'
 import { verify } from 'otplib'
 
@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   const { user } = await requireRecentAuth(event)
 
   if ((await verify({ secret, token })).valid) {
-    await db.update(auth).set({ totp: secret }).where(eq(auth.id, user.id))
+    await db.update(authUsers).set({ totp: secret }).where(eq(authUsers.id, user.id))
     await setSession(event, user, { refresh: false }) // refresh requiresMfaSetup
   } else throw createError({ status: 400, message: 'Invalid code.' })
 })

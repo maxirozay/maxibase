@@ -1,5 +1,5 @@
 import { snakeCase, text, uuid, primaryKey, pgEnum } from 'drizzle-orm/pg-core'
-import { auth } from 'maxibase/layers/base/server/database/schema'
+import { authUsers } from 'maxibase/layers/base/server/database/schema'
 
 // The layer's tables, updated with the package. To customise one, copy it here: an export
 // declared in this file takes precedence over the one with the same name from the package.
@@ -17,7 +17,7 @@ export const organizationMembers = snakeCase.table(
   {
     userId: uuid()
       .notNull()
-      .references(() => auth.id, { onDelete: 'cascade' }),
+      .references(() => authUsers.id, { onDelete: 'cascade' }),
     organizationId: uuid('organization_id')
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
