@@ -465,4 +465,13 @@ describe('getFile', () => {
   it('falls back to a download type without a known extension', async () => {
     expect(await contentType('u/123/notes')).toBe('application/octet-stream')
   })
+
+  // Every file function defaults to private, so a forgotten flag never reaches the other tree
+  it('reads from the private files by default', async () => {
+    const stream: any = await getFile(event, 'u/123/report.pdf')
+    await stream.cancel()
+    await expect(getFile(event, 'u/123/report.pdf', { isPrivate: false })).rejects.toMatchObject({
+      statusCode: 404,
+    })
+  })
 })

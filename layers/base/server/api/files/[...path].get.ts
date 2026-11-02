@@ -17,7 +17,7 @@ const querySchema = z.object({
 export default defineEventHandler(async (event) => {
   const path = getRouterParam(event, 'path') || ''
   const {
-    isPrivate = false,
+    isPrivate = true,
     maxAge,
     expireIn,
     redirect,

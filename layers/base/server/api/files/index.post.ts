@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
     return typeof value === 'string' ? value.trim() : undefined
   }
 
-  const isPrivate = body.has('isPrivate') ? get('isPrivate') === 'true' : true
+  const isPrivate = get('isPrivate') !== 'false'
   const path = get('path')
   const maxAge = parseMaxAge(get('maxAge'))
 
