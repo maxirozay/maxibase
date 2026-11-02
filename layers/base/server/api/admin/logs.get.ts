@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
   const { from, to, search, type, limit } = await getValidatedQuery(event, querySchema.parse)
   const text = prepareStringForSearch(search)
 
-  const rows = await db.query.logs.findMany({
+  const rows = await db.query.authLogs.findMany({
     where: {
       time: {
         gte: new Date(from),
@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
         ? [
             { summary: { ilike: text } },
             { origin: { ilike: text } },
-            { auth: { email: { ilike: text } } },
+            { user: { email: { ilike: text } } },
           ]
         : undefined,
     },
@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
     },
     limit: limit + 1,
     with: {
-      auth: {
+      user: {
         columns: {
           email: true,
         },

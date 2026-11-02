@@ -1,4 +1,4 @@
-import { logs } from '#server/database/schema'
+import { authLogs } from '#server/database/schema'
 import { lt } from 'drizzle-orm/sql/expressions/conditions'
 import type { H3Event } from 'h3'
 
@@ -13,7 +13,7 @@ export async function log(summary: string, { data, origin, type, event }: LogOpt
   const session = event ? await getUserSession(event) : null
   const userAgent = event?.node?.req?.headers['user-agent']
 
-  await db.insert(logs).values({
+  await db.insert(authLogs).values({
     userId: session?.user?.id,
     type,
     origin: origin || event?.path + ' ' + event?.node?.req?.method,
@@ -29,5 +29,5 @@ export async function cleanLogs() {
   const retentionMS = daysToMilliseconds(config.logs.retentionDays)
   const cutoffDate = new Date(Date.now() - retentionMS)
 
-  await db.delete(logs).where(lt(logs.time, cutoffDate))
+  await db.delete(authLogs).where(lt(authLogs.time, cutoffDate))
 }

@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm'
 import { randomBytes } from 'crypto'
-import { recoveryCodes } from '#server/database/schema'
+import { authRecoveryCodes } from '#server/database/schema'
 
 const RECOVERY_CODE_COUNT = 10
 
@@ -18,8 +18,8 @@ export async function generateRecoveryCodes(userId: string) {
   const hashes = await Promise.all(codes.map((code) => hashPassword(normalizeRecoveryCode(code))))
 
   await db.transaction(async (tx) => {
-    await tx.delete(recoveryCodes).where(eq(recoveryCodes.userId, userId))
-    await tx.insert(recoveryCodes).values(hashes.map((code) => ({ userId, code })))
+    await tx.delete(authRecoveryCodes).where(eq(authRecoveryCodes.userId, userId))
+    await tx.insert(authRecoveryCodes).values(hashes.map((code) => ({ userId, code })))
   })
 
   return codes
@@ -28,9 +28,9 @@ export async function generateRecoveryCodes(userId: string) {
 export async function consumeRecoveryCode(userId: string, code: string) {
   const normalized = normalizeRecoveryCode(code)
   const rows = await db
-    .select({ code: recoveryCodes.code })
-    .from(recoveryCodes)
-    .where(eq(recoveryCodes.userId, userId))
+    .select({ code: authRecoveryCodes.code })
+    .from(authRecoveryCodes)
+    .where(eq(authRecoveryCodes.userId, userId))
 
   let match: string | undefined
   for (const row of rows) {
@@ -42,8 +42,8 @@ export async function consumeRecoveryCode(userId: string, code: string) {
   if (!match) return null
 
   const deleted = await db
-    .delete(recoveryCodes)
-    .where(and(eq(recoveryCodes.userId, userId), eq(recoveryCodes.code, match)))
+    .delete(authRecoveryCodes)
+    .where(and(eq(authRecoveryCodes.userId, userId), eq(authRecoveryCodes.code, match)))
     .returning()
   // a concurrent request used it first
   if (!deleted.length) return null
@@ -52,5 +52,5 @@ export async function consumeRecoveryCode(userId: string, code: string) {
 }
 
 export function countRecoveryCodes(userId: string) {
-  return db.$count(recoveryCodes, eq(recoveryCodes.userId, userId))
+  return db.$count(authRecoveryCodes, eq(authRecoveryCodes.userId, userId))
 }

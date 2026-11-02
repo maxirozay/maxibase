@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { eq } from 'drizzle-orm'
-import { auth } from '#server/database/schema'
+import { authUsers } from '#server/database/schema'
 import { verifyOTP } from '../otp/verify.post'
 import { emailChangeKey } from './get.post'
 
@@ -19,9 +19,9 @@ export default defineEventHandler(async (event) => {
   await verifyOTP(emailChangeKey(user.id, email), otp)
 
   const updated = await db
-    .update(auth)
+    .update(authUsers)
     .set({ email })
-    .where(eq(auth.id, user.id))
+    .where(eq(authUsers.id, user.id))
     .returning()
     .catch((error: any) => {
       // 23505: unique violation

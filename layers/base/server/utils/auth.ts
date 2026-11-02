@@ -1,16 +1,16 @@
-import { auth, refreshTokens } from '#server/database/schema'
+import { authUsers, authRefreshTokens } from '#server/database/schema'
 import { and, eq, inArray, isNotNull, isNull, lt, lte, or, sql } from 'drizzle-orm'
 import { createHash, randomBytes } from 'crypto'
 import type { H3Event } from 'h3'
 
-type AuthUser = typeof auth.$inferSelect
+type AuthUser = typeof authUsers.$inferSelect
 type SessionUser = Pick<AuthUser, 'id'> & Partial<Pick<AuthUser, 'email' | 'role'>>
 
 export async function mfaSetupFlag(user: SessionUser) {
   const config = useRuntimeConfig()
   if (!config.forceMfa || !user.email) return
 
-  const row = await db.query.auth.findFirst({
+  const row = await db.query.authUsers.findFirst({
     where: { id: user.id },
     with: { credentials: true },
   })
@@ -47,7 +47,7 @@ export function requireUserVerification(userVerified: boolean) {
 
 export async function createAuth(user: Pick<AuthUser, 'email'>, event: H3Event) {
   const insertedUsers = await db
-    .insert(auth)
+    .insert(authUsers)
     .values({
       email: user.email?.trim().toLowerCase(),
       locale: event && useLocaleServerMiddleware(event).current,
@@ -64,11 +64,11 @@ export async function createAuth(user: Pick<AuthUser, 'email'>, event: H3Event) 
 
 export async function setAuth(user: Pick<AuthUser, 'id' | 'email'>) {
   const insertedUsers = await db
-    .update(auth)
+    .update(authUsers)
     .set({
       email: user.email?.trim().toLowerCase(),
     })
-    .where(eq(auth.id, user.id))
+    .where(eq(authUsers.id, user.id))
     .returning()
   if (!insertedUsers[0]) {
     throw createError({
@@ -90,7 +90,7 @@ export async function getAuth(event: H3Event, email?: string, credentials = fals
   }
 
   const where = email ? { email: email.trim().toLowerCase() } : { id }
-  const user = await db.query.auth.findFirst({
+  const user = await db.query.authUsers.findFirst({
     where,
     with: {
       credentials,
@@ -166,9 +166,9 @@ export function hashRefreshToken(token: string) {
 
 export async function updateLastActive(userId: string) {
   await db
-    .update(auth)
+    .update(authUsers)
     .set({ lastActiveOn: sql`current_date` })
-    .where(and(eq(auth.id, userId), lt(auth.lastActiveOn, sql`current_date`)))
+    .where(and(eq(authUsers.id, userId), lt(authUsers.lastActiveOn, sql`current_date`)))
 }
 
 export async function cleanInactiveUsers() {
@@ -176,9 +176,9 @@ export async function cleanInactiveUsers() {
   if (!Number.isInteger(retentionDays) || retentionDays <= 0) {
     throw new Error(`Inactive users: invalid retentionDays ${JSON.stringify(retentionDays)}`)
   }
-  const inactive = lt(auth.lastActiveOn, sql`current_date - ${retentionDays}::int`)
+  const inactive = lt(authUsers.lastActiveOn, sql`current_date - ${retentionDays}::int`)
 
-  const users = await db.select({ id: auth.id }).from(auth).where(inactive)
+  const users = await db.select({ id: authUsers.id }).from(authUsers).where(inactive)
   const ids: string[] = []
   for (const { id } of users) {
     await deleteUserFiles(id).then(
@@ -189,9 +189,9 @@ export async function cleanInactiveUsers() {
 
   if (ids.length) {
     const deleted = await db
-      .delete(auth)
-      .where(and(inArray(auth.id, ids), inactive))
-      .returning({ id: auth.id })
+      .delete(authUsers)
+      .where(and(inArray(authUsers.id, ids), inactive))
+      .returning({ id: authUsers.id })
     await log(`Deleted ${deleted.length} users inactive for ${retentionDays} days`, {
       origin: 'clean task',
     })
@@ -212,17 +212,20 @@ async function warnInactiveUsers(retentionDays: number, warningDays: number) {
 
   const users = await db
     .select({
-      id: auth.id,
-      email: auth.email,
-      locale: auth.locale,
-      lastActiveOn: auth.lastActiveOn,
+      id: authUsers.id,
+      email: authUsers.email,
+      locale: authUsers.locale,
+      lastActiveOn: authUsers.lastActiveOn,
     })
-    .from(auth)
+    .from(authUsers)
     .where(
       and(
-        lt(auth.lastActiveOn, sql`current_date - ${warnAfterDays}::int`),
-        isNotNull(auth.email),
-        or(isNull(auth.deletionWarnedOn), lte(auth.deletionWarnedOn, auth.lastActiveOn)),
+        lt(authUsers.lastActiveOn, sql`current_date - ${warnAfterDays}::int`),
+        isNotNull(authUsers.email),
+        or(
+          isNull(authUsers.deletionWarnedOn),
+          lte(authUsers.deletionWarnedOn, authUsers.lastActiveOn),
+        ),
       ),
     )
 
@@ -237,9 +240,9 @@ async function warnInactiveUsers(retentionDays: number, warningDays: number) {
     try {
       await sendEmailTemplate('inactiveDeletion', { to: user.email!, locale, params: { date } })
       await db
-        .update(auth)
+        .update(authUsers)
         .set({ deletionWarnedOn: sql`current_date` })
-        .where(eq(auth.id, user.id))
+        .where(eq(authUsers.id, user.id))
     } catch {
       failed++
     }
@@ -257,7 +260,7 @@ export async function createRefreshToken(userId: string, event: H3Event) {
   const token = generateRefreshToken()
   await updateLastActive(userId)
 
-  await db.insert(refreshTokens).values({
+  await db.insert(authRefreshTokens).values({
     userId,
     token: hashRefreshToken(token),
   })
@@ -282,7 +285,7 @@ export async function verifyRefreshToken(event: H3Event) {
     })
   }
 
-  const refreshToken = await db.query.refreshTokens.findFirst({
+  const refreshToken = await db.query.authRefreshTokens.findFirst({
     where: { token: hashRefreshToken(existingToken) },
   })
   if (!refreshToken) {
@@ -293,7 +296,7 @@ export async function verifyRefreshToken(event: H3Event) {
     })
   }
 
-  const user = await db.query.auth.findFirst({
+  const user = await db.query.authUsers.findFirst({
     where: { id: refreshToken.userId },
   })
   if (!user) {
@@ -318,7 +321,7 @@ export async function verifyRefreshToken(event: H3Event) {
 
 // Takes the token from the cookie, never the stored value
 export async function revokeRefreshToken(token: string) {
-  await db.delete(refreshTokens).where(eq(refreshTokens.token, hashRefreshToken(token)))
+  await db.delete(authRefreshTokens).where(eq(authRefreshTokens.token, hashRefreshToken(token)))
 }
 
 function refreshTokenCutoff() {
@@ -326,9 +329,9 @@ function refreshTokenCutoff() {
 }
 
 export async function cleanRefreshTokens() {
-  await db.delete(refreshTokens).where(lte(refreshTokens.createdAt, refreshTokenCutoff()))
+  await db.delete(authRefreshTokens).where(lte(authRefreshTokens.createdAt, refreshTokenCutoff()))
 }
 
 export async function revokeAllUserTokens(userId: string) {
-  await db.delete(refreshTokens).where(eq(refreshTokens.userId, userId))
+  await db.delete(authRefreshTokens).where(eq(authRefreshTokens.userId, userId))
 }

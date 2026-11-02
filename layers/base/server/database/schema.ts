@@ -17,7 +17,7 @@ import {
 export const authSchema = snakeCase.schema('auth')
 
 export const appRoleEnum = pgEnum('app_role', ['admin', 'user'])
-export const auth = authSchema.table('users', {
+export const authUsers = authSchema.table('users', {
   id: uuid().primaryKey().defaultRandom(),
   email: text().unique(),
   password: text(),
@@ -29,20 +29,20 @@ export const auth = authSchema.table('users', {
   locale: text(),
 })
 
-export const refreshTokens = authSchema.table('refresh_tokens', {
+export const authRefreshTokens = authSchema.table('refresh_tokens', {
   token: text().primaryKey(),
   userId: uuid()
     .notNull()
-    .references(() => auth.id, { onDelete: 'cascade' }),
+    .references(() => authUsers.id, { onDelete: 'cascade' }),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 })
 
-export const credentials = authSchema.table(
+export const authCredentials = authSchema.table(
   'credentials',
   {
     userId: uuid()
       .notNull()
-      .references(() => auth.id, { onDelete: 'cascade' }),
+      .references(() => authUsers.id, { onDelete: 'cascade' }),
     id: text().unique().notNull(),
     name: text().notNull(),
     publicKey: text().notNull(),
@@ -53,23 +53,23 @@ export const credentials = authSchema.table(
   (table) => [primaryKey({ columns: [table.userId, table.id] })],
 )
 
-export const recoveryCodes = authSchema.table(
+export const authRecoveryCodes = authSchema.table(
   'recovery_codes',
   {
     userId: uuid()
       .notNull()
-      .references(() => auth.id, { onDelete: 'cascade' }),
+      .references(() => authUsers.id, { onDelete: 'cascade' }),
     code: text().notNull(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [primaryKey({ columns: [table.userId, table.code] })],
 )
 
-export const logs = authSchema.table(
+export const authLogs = authSchema.table(
   'logs',
   {
     id: bigint({ mode: 'number' }).generatedByDefaultAsIdentity().primaryKey(),
-    userId: uuid().references(() => auth.id, { onDelete: 'cascade' }),
+    userId: uuid().references(() => authUsers.id, { onDelete: 'cascade' }),
     type: text().notNull().default('info'),
     origin: text(),
     summary: text(),

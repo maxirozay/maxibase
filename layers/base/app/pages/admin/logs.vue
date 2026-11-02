@@ -327,8 +327,8 @@ onMounted(() => {
                   <div class="flex g1">
                     <div class="mr">
                       <b>User:</b> IP: {{ duplicate.ipAddress }}
-                      <span v-if="duplicate.auth">
-                        {{ duplicate.auth.email }} (ID: {{ duplicate.userId }})
+                      <span v-if="duplicate.user">
+                        {{ duplicate.user.email }} (ID: {{ duplicate.userId }})
                       </span>
                     </div>
                     <div>{{ formatDateTime(duplicate.time) }}</div>

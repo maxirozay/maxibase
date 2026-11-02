@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm'
-import { auth, credentials } from '#server/database/schema'
+import { authUsers, authCredentials } from '#server/database/schema'
 
 export default defineWebAuthnAuthenticateEventHandler({
   async storeChallenge(event, challenge, attemptId) {
@@ -22,7 +22,7 @@ export default defineWebAuthnAuthenticateEventHandler({
     return (user as any).credentials || []
   },
   async getCredential(event, credentialId) {
-    const credential = await db.query.credentials.findFirst({
+    const credential = await db.query.authCredentials.findFirst({
       where: {
         id: credentialId,
       },
@@ -36,14 +36,14 @@ export default defineWebAuthnAuthenticateEventHandler({
 
     // the next assertion must report a higher counter, which exposes a cloned authenticator
     await db
-      .update(credentials)
+      .update(authCredentials)
       .set({ counter: authenticationInfo.newCounter })
-      .where(eq(credentials.id, credential.id))
+      .where(eq(authCredentials.id, credential.id))
 
     const user = await db
       .select()
-      .from(auth)
-      .where(eq(auth.id, credential.userId as string))
+      .from(authUsers)
+      .where(eq(authUsers.id, credential.userId as string))
       .then((result) => result[0])
     await setSession(event, user!)
   },
