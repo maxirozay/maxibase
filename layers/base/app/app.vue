@@ -1,4 +1,4 @@
-<script script setup lang="ts">
+<script setup lang="ts">
 const config = useRuntimeConfig()
 const { $t } = useI18n()
 useSeoMeta({
