@@ -17,7 +17,8 @@
     "locales",
     "scripts",
     "server/assets",
-    "nuxt.config.ts"
+    "nuxt.config.ts",
+    "MIGRATION.md"
   ],
   "repository": {
     "type": "git",
