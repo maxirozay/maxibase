@@ -5,6 +5,62 @@ v2 moves the layer to Nuxt 5 and groups every breaking change in one release.
 None of the changes below need a database migration: the SQL table and column names stay the
 same, `pnpm db:generate` produces nothing.
 
+## Nuxt 5
+
+Add `vue` and `vue-router` to your `dependencies`. Nitro v3 bundles every dependency into the
+server and no longer finds them through Nuxt's.
+
+Sessions are sealed with `NUXT_APP_SECRET`, `NUXT_SESSION_PASSWORD` is no longer read. Set it in
+every env file (`openssl rand -base64 32`). The session cookies of v1 can't be opened anymore, but a
+signed-in user still has a refresh token, so the next request signs them back in without them
+noticing. Only their next sensitive action asks to confirm their identity again.
+
+In `package.json`, `db:migrate` runs the script with node:
+
+```json
+"db:migrate": "node node_modules/maxibase/scripts/db/migrate.mjs"
+```
+
+Nitro reserves dotted suffixes in server file names: a middleware like `server/middleware/4.org.ts`
+fails the build. Rename it `4-org.ts`. The layer's middlewares are now `0-rate-limit.ts`,
+`1-session.ts`, `2-mfa.ts` and `3-admin.ts`, and still run in that order.
+
+### Your server code
+
+Nuxt 5 no longer auto-imports the Nitro and h3 utilities in server code. Import them from
+`nuxt/server`, or enable `experimental.nitroAutoImports` while you migrate. The layer's own utils
+(`db`, `log`, `requireAdmin`…) and those of nuxt-auth-utils are still auto-imported.
+
+```ts
+import { createError, defineEventHandler, readValidatedBody, useRuntimeConfig } from 'nuxt/server'
+```
+
+| v1                                           | v2                                                |
+| -------------------------------------------- | ------------------------------------------------- |
+| `import type { H3Event } from 'h3'`          | `import type { RequestEvent } from 'nuxt/server'` |
+| `useStorage('auth')`                         | `useKV('auth')` from `nitro/kv`                   |
+| `nitro.storage` in `nuxt.config`             | `nitro.kv`                                        |
+| `defineNitroPlugin`                          | `definePlugin` from `nitro`                       |
+| `defineTask`                                 | `defineTask` from `nitro/task`                    |
+| `setHeader(event, name, value)`              | `event.res.headers.set(name, value)`              |
+| `readFormData(event)`                        | `event.req.formData()`                            |
+| `isMethod(event, 'GET')`                     | `event.req.method === 'GET'`                      |
+| `event.path`                                 | `event.url.pathname`, without the query string    |
+| `event.node.req.headers['user-agent']`       | `event.req.headers.get('user-agent')`             |
+| `createError({ statusCode, statusMessage })` | `createError({ status, statusText })`             |
+| `error.statusCode`                           | `error.status`                                    |
+
+`getRouterParam` returns the parameter still URL-encoded, pass `{ decode: true }` to decode it.
+
+The layer's utils take a `RequestEvent` instead of an `H3Event`.
+
+### Env values
+
+Nitro v3 gives a `NUXT_*` override to the app as the raw string, v2 parsed it: `NUXT_FORCE_MFA=false`
+would be the string `"false"`, which is truthy. The layer parses them back on startup, `true` and
+`false` as booleans and numbers as numbers, for your own runtime config keys too. A value that only
+looks like a number, such as `007` or a long numeric id, stays a string.
+
 ## Drizzle 1.0.0-rc.5
 
 The layer uses `drizzle-orm` `1.0.0-rc.5`. Set `drizzle-orm`, `drizzle-kit` and `drizzle-seed` to

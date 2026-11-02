@@ -1,3 +1,5 @@
+import { createError, defineEventHandler, useRuntimeConfig } from 'nuxt/server'
+
 // a session flagged requiresMfaSetup is only allowed to enroll a second factor
 const ENROLLMENT_ROUTES = [
   '/api/_auth/session', // read and clear the session
@@ -11,7 +13,7 @@ const ENROLLMENT_ROUTES = [
 
 export default defineEventHandler(async (event) => {
   if (!useRuntimeConfig().forceMfa) return
-  if (!event.path.startsWith('/api/')) return
+  if (!event.url.pathname.startsWith('/api/')) return
 
   const session = await getUserSession(event)
   if (!session.user?.email) return
@@ -26,9 +28,10 @@ export default defineEventHandler(async (event) => {
   }
   if (!requiresMfaSetup) return
 
-  const path = event.path.split('?')[0]!
+  const path = event.url.pathname
   if (path.startsWith('/api/auth/otp/') || path === '/api/auth/password') return // re-authentication
-  if (ENROLLMENT_ROUTES.includes(path) && !(path === '/api/auth' && !isMethod(event, 'GET'))) return
+  if (ENROLLMENT_ROUTES.includes(path) && !(path === '/api/auth' && event.req.method !== 'GET'))
+    return
 
   throw createError({ status: 403, message: 'MFA setup required' })
 })

@@ -1,8 +1,15 @@
-import type { H3Event } from 'h3'
+import {
+  createError,
+  defineEventHandler,
+  getQuery,
+  sendRedirect,
+  useRuntimeConfig,
+} from 'nuxt/server'
+import type { RequestEvent } from 'nuxt/server'
 
 const scope = ['openid', 'email', 'User.Read']
 
-async function onSuccess(event: H3Event, { tokens }: { tokens: any }) {
+async function onSuccess(event: RequestEvent, { tokens }: { tokens: any }) {
   const claims = JSON.parse(Buffer.from(tokens.id_token.split('.')[1], 'base64url').toString())
   if (!claims.email || ![true, '1'].includes(claims.xms_edov)) {
     throw createError({

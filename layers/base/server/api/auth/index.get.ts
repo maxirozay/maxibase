@@ -1,3 +1,5 @@
+import { defineEventHandler, useRuntimeConfig } from 'nuxt/server'
+
 export default defineEventHandler(async (event) => {
   await requireUserSession(event)
   const user = await requireAuthUser(event, { withCredentials: true })

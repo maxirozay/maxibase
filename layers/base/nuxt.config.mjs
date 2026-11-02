@@ -4,7 +4,8 @@ import { fileURLToPath } from 'node:url'
 
 const authTypes = { path: fileURLToPath(new URL('./shared/types/auth.d.ts', import.meta.url)) }
 
-export default defineNuxtConfig({
+/** @type {import('nuxt/schema').NuxtConfig} */
+export default {
   routeRules: {
     '/images/auth/**': { headers: { 'cache-control': 'public, max-age=31536000, immutable' } },
   },
@@ -32,7 +33,6 @@ export default defineNuxtConfig({
     },
     session: {
       maxAge: 3600, // 1 hour
-      password: '',
       unique: false,
     },
     oauth: {
@@ -95,7 +95,7 @@ export default defineNuxtConfig({
       '0 3 * * *': 'backup',
       '0 2 * * *': 'clean',
     },
-    storage: {
+    kv: {
       auth: {
         driver: 'lru-cache',
         max: 10_000,
@@ -151,4 +151,4 @@ export default defineNuxtConfig({
       references.push(authTypes)
     },
   },
-})
+}

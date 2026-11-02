@@ -13,9 +13,9 @@ declare module '#auth-utils' {
   }
 }
 
-declare module 'h3' {
+declare module 'nuxt/server' {
   interface SessionConfig {
-    unique?: boolean
+    unique?: boolean // a new sign-in revokes the other sessions
   }
 }
 

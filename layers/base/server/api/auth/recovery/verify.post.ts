@@ -1,3 +1,5 @@
+import { createError, defineEventHandler, readValidatedBody } from 'nuxt/server'
+import { useKV } from 'nitro/kv'
 import { z } from 'zod'
 import { verifyFirstFactor } from '../totp/verify.post'
 
@@ -27,7 +29,7 @@ export default defineEventHandler(async (event) => {
   const remaining = await consumeRecoveryCode(user.id, code)
   if (remaining === null) throw createError({ status: 400, message: 'Invalid recovery code.' })
 
-  if (otp) await useStorage('auth').removeItem(email)
+  if (otp) await useKV('auth').removeItem(email)
   const session = await setSession(event, user)
 
   await log('Recovery code used', { data: { remaining }, type: 'security', event })

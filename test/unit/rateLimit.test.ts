@@ -3,7 +3,9 @@ import { resetTestState, logSpy, session, config } from '../setup'
 import { enforceRateLimit, rateLimitIP } from '#server-utils/rateLimit'
 
 const rule = { limit: 3, window: 60 }
-const event = { ip: '203.0.113.1' } as any
+// The response headers take the Retry-After of a rejected request
+const ipEvent = (ip: string) => ({ ip, res: { headers: new Headers() } }) as any
+const event = ipEvent('203.0.113.1')
 
 // The limiter keeps one module-level map, so every test needs its own route key.
 let routeId = 0
@@ -30,7 +32,9 @@ describe('enforceRateLimit', () => {
   it('throws 429 on the request past the limit', async () => {
     const route = nextRoute()
     await hit(route, rule.limit)
-    await expect(enforceRateLimit(event, route, rule)).rejects.toMatchObject({ statusCode: 429 })
+    const rejected = ipEvent('203.0.113.1')
+    await expect(enforceRateLimit(rejected, route, rule)).rejects.toMatchObject({ statusCode: 429 })
+    expect(Number(rejected.res.headers.get('Retry-After'))).toBeGreaterThan(0)
   })
 
   it('logs the first breach once, not on every later request', async () => {
@@ -73,22 +77,22 @@ describe('enforceRateLimit', () => {
   it('counts each IP separately', async () => {
     const route = nextRoute()
     await hit(route, rule.limit)
-    await expect(enforceRateLimit({ ip: '198.51.100.7' }, route, rule)).resolves.toBeUndefined()
+    await expect(enforceRateLimit(ipEvent('198.51.100.7'), route, rule)).resolves.toBeUndefined()
   })
 
   it('counts every address of an IPv6 /64 together', async () => {
     const route = nextRoute()
-    await hit(route, rule.limit, { ip: '2001:db8:1:2::1' })
+    await hit(route, rule.limit, ipEvent('2001:db8:1:2::1'))
     await expect(
-      enforceRateLimit({ ip: '2001:db8:1:2:ffff:ffff:ffff:ffff' }, route, rule),
+      enforceRateLimit(ipEvent('2001:db8:1:2:ffff:ffff:ffff:ffff'), route, rule),
     ).rejects.toMatchObject({ statusCode: 429 })
-    await expect(enforceRateLimit({ ip: '2001:db8:1:3::1' }, route, rule)).resolves.toBeUndefined()
+    await expect(enforceRateLimit(ipEvent('2001:db8:1:3::1'), route, rule)).resolves.toBeUndefined()
   })
 
   it('counts an IPv4-mapped address as its IPv4', async () => {
     const route = nextRoute()
-    await hit(route, rule.limit, { ip: '::ffff:203.0.113.9' })
-    await expect(enforceRateLimit({ ip: '203.0.113.9' }, route, rule)).rejects.toMatchObject({
+    await hit(route, rule.limit, ipEvent('::ffff:203.0.113.9'))
+    await expect(enforceRateLimit(ipEvent('203.0.113.9'), route, rule)).rejects.toMatchObject({
       statusCode: 429,
     })
   })
@@ -96,9 +100,9 @@ describe('enforceRateLimit', () => {
   it('counts a signed-in user by id, not by IP', async () => {
     const route = nextRoute()
     session.user = { id: 'user-1' }
-    await hit(route, rule.limit, { ip: '203.0.113.1' })
+    await hit(route, rule.limit, ipEvent('203.0.113.1'))
     // Same user, different IP: still over the limit.
-    await expect(enforceRateLimit({ ip: '198.51.100.7' }, route, rule)).rejects.toMatchObject({
+    await expect(enforceRateLimit(ipEvent('198.51.100.7'), route, rule)).rejects.toMatchObject({
       statusCode: 429,
     })
   })

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { resetTestState, config } from '../setup'
-import middleware from '../../layers/base/server/middleware/0.rateLimit'
+import middleware from '../../layers/base/server/middleware/0-rate-limit'
 
 const routes = {
   '/api/auth': { limit: 100, window: 60 },
@@ -18,7 +18,7 @@ beforeEach(() => {
   ;(globalThis as any).enforceRateLimit = enforce
 })
 
-const run = (path: string) => (middleware as any)({ path })
+const run = (path: string) => (middleware as any)({ url: new URL(path, 'https://app.test') })
 
 describe('rate limit middleware', () => {
   it('ignores paths with no rule', async () => {

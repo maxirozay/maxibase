@@ -230,9 +230,9 @@ describe('parseParts', () => {
 
 describe('readUploadBody', () => {
   const MB = 1024 * 1024
-  const event = {} as any
+  const readFormData = vi.fn(async () => new FormData())
+  const event = { req: { formData: readFormData } } as any
   const getRequestHeader = vi.mocked((globalThis as any).getRequestHeader)
-  const readFormData = vi.mocked((globalThis as any).readFormData)
 
   beforeEach(() => {
     session.user = { id: '123' }
@@ -260,7 +260,7 @@ describe('readUploadBody', () => {
   it('reads a body within the limit', async () => {
     getRequestHeader.mockReturnValue(String(5 * MB))
     await readUploadBody(event, 5)
-    expect(readFormData).toHaveBeenCalledWith(event)
+    expect(readFormData).toHaveBeenCalledOnce()
   })
 
   it('returns nothing for a body that is not form data', async () => {
@@ -432,8 +432,7 @@ describe('copyFile and deletePath', () => {
 })
 
 describe('getFile', () => {
-  const event = {} as any
-  const setHeader = vi.mocked((globalThis as any).setHeader)
+  let event: any
   let cwd: string
 
   beforeEach(async () => {
@@ -444,7 +443,7 @@ describe('getFile', () => {
     for (const name of ['report.pdf', 'notes']) {
       await writeFile(join(cwd, 'files', 'private', 'u/123', name), 'hello')
     }
-    setHeader.mockClear()
+    event = { res: { headers: new Headers() } }
   })
 
   afterEach(async () => {
@@ -455,7 +454,7 @@ describe('getFile', () => {
   const contentType = async (path: string) => {
     const stream: any = await getFile(event, path, { isPrivate: true })
     await stream.cancel()
-    return setHeader.mock.calls.find(([, name]) => name === 'Content-Type')?.[2]
+    return event.res.headers.get('Content-Type')
   }
 
   it('serves a local file with the type of its extension', async () => {

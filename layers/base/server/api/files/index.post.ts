@@ -1,3 +1,5 @@
+import { createError, defineEventHandler, useRuntimeConfig } from 'nuxt/server'
+
 export default defineEventHandler(async (event) => {
   const body = await readUploadBody(event, Number(useRuntimeConfig().public.files.maxSize))
   if (!body) {

@@ -1,3 +1,4 @@
+import { createError, defineEventHandler, getRouterParam, getValidatedQuery } from 'nuxt/server'
 import { z } from 'zod'
 
 const querySchema = z.object({
@@ -23,11 +24,11 @@ export default defineEventHandler(async (event) => {
     redirect,
   } = await getValidatedQuery(event, querySchema.parse)
 
-  setHeader(event, 'Cache-Control', getCacheControl(isPrivate, maxAge))
+  event.res.headers.set('Cache-Control', getCacheControl(isPrivate, maxAge))
   return getFile(event, decodePath(path), { isPrivate, expireIn, redirect })
 })
 
-// h3 decodes the path but keeps %25 encoded, so a % in a name needs this second pass
+// The param comes still encoded, decoded here so a malformed % is a 400
 function decodePath(path: string) {
   try {
     return decodeURIComponent(path)

@@ -1,3 +1,4 @@
+import { defineEventHandler, readValidatedBody } from 'nuxt/server'
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { authCredentials } from '#server/database/schema'

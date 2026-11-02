@@ -1,3 +1,6 @@
+import { useRuntimeConfig } from 'nuxt/server'
+import { defineTask } from 'nitro/task'
+
 export default defineTask({
   meta: {
     name: 'clean',

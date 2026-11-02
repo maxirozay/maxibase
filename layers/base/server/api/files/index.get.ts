@@ -1,3 +1,4 @@
+import { defineEventHandler, getValidatedQuery } from 'nuxt/server'
 import { z } from 'zod'
 
 const querySchema = z.object({

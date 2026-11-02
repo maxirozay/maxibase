@@ -1,3 +1,4 @@
+import { createError, defineEventHandler, useRuntimeConfig } from 'nuxt/server'
 import { eq } from 'drizzle-orm/sql/expressions/conditions'
 import { authUsers, authCredentials } from '#server/database/schema'
 

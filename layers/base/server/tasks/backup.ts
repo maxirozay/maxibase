@@ -1,3 +1,5 @@
+import { useRuntimeConfig } from 'nuxt/server'
+import { defineTask } from 'nitro/task'
 import { createReadStream } from 'fs'
 
 export default defineTask({

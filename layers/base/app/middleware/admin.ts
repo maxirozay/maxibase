@@ -7,8 +7,8 @@ export default defineNuxtRouteMiddleware((to) => {
     return navigateTo(redirectUrl, { replace: true })
   } else if (user.value.role !== 'admin') {
     return createError({
-      statusCode: 403,
-      statusMessage: 'Forbidden',
+      status: 403,
+      statusText: 'Forbidden',
       message: 'You do not have permission to access this page.',
     })
   }

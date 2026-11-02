@@ -1,3 +1,4 @@
+import { useRuntimeConfig } from 'nuxt/server'
 import { spawn, type ChildProcess } from 'child_process'
 import fs from 'fs/promises'
 import path from 'path'

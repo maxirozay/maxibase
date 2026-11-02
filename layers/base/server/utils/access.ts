@@ -1,6 +1,7 @@
-import type { H3Event } from 'h3'
+import { createError } from 'nuxt/server'
+import type { RequestEvent } from 'nuxt/server'
 
-export async function requireAdmin(event: H3Event) {
+export async function requireAdmin(event: RequestEvent) {
   const session = await requireUserSession(event)
   if (session.user.role === 'admin') return session
 

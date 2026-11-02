@@ -1,3 +1,4 @@
+import { useRuntimeConfig } from 'nuxt/server'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { relations } from '#database/relations'
 import { authRelations } from '../relations'

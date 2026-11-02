@@ -12,6 +12,10 @@ export default defineConfig({
       { find: '#shared-utils', replacement: `${root}layers/base/shared/utils` },
       { find: '#database', replacement: `${root}server/database` },
       { find: '#server', replacement: `${root}server` },
+      {
+        find: /^(nuxt\/server|nitro|nitro\/kv|nitro\/task)$/,
+        replacement: `${root}test/stubs/server.ts`,
+      },
     ],
   },
   test: {

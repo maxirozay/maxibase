@@ -1,3 +1,4 @@
+import { defineEventHandler, readValidatedBody } from 'nuxt/server'
 import z from 'zod'
 
 const MAX_DATA_LENGTH = 10000

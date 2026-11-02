@@ -1,3 +1,5 @@
+import { useRuntimeConfig } from 'nuxt/server'
+import { useKV } from 'nitro/kv'
 import nodemailer from 'nodemailer'
 import type { SendMailOptions, Transporter } from 'nodemailer'
 
@@ -76,8 +78,8 @@ export async function sendEmail({
 }
 
 async function getEmailAsset(key: string) {
-  return ((await useStorage('assets:server').getItem(`emails/${key}`)) ??
-    (await useStorage('assets:base').getItem(`emails/${key}`))) as string | null
+  return ((await useKV('assets:server').getItem(`emails/${key}`)) ??
+    (await useKV('assets:base').getItem(`emails/${key}`))) as string | null
 }
 
 export async function buildEmail(html: string, locale: string = 'en', params = {}) {

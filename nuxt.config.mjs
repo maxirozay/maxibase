@@ -1,7 +1,8 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 const privateRoute = { ssr: false, headers: { 'X-Robots-Tag': 'noindex' } }
 
-export default defineNuxtConfig({
+/** @type {import('nuxt/schema').NuxtConfig} */
+export default {
   routeRules: {
     '/signin': { ssr: false },
     '/user/**': { ...privateRoute, appMiddleware: 'authenticated' },
@@ -55,4 +56,4 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   srcDir: 'app/',
   extends: ['./layers/base'],
-})
+}

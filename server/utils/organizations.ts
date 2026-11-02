@@ -1,6 +1,7 @@
-import type { H3Event } from 'h3'
+import { createError } from 'nuxt/server'
+import type { RequestEvent } from 'nuxt/server'
 
-export async function requireOrganizationMember(event: H3Event, organizationId: string) {
+export async function requireOrganizationMember(event: RequestEvent, organizationId: string) {
   const { user } = await requireUserSession(event)
   const membership = await db.query.organizationMembers.findFirst({
     where: {
@@ -15,7 +16,7 @@ export async function requireOrganizationMember(event: H3Event, organizationId: 
   return membership
 }
 
-export async function requireOrganizationAdmin(event: H3Event, organizationId: string) {
+export async function requireOrganizationAdmin(event: RequestEvent, organizationId: string) {
   const membership = await requireOrganizationMember(event, organizationId)
   if (membership.role === 'admin') return membership
 
