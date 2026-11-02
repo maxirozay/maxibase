@@ -10,6 +10,10 @@ same, `pnpm db:generate` produces nothing.
 Add `vue` and `vue-router` to your `dependencies`. Nitro v3 bundles every dependency into the
 server and no longer finds them through Nuxt's.
 
+`nuxt` (`^5.0.0-0`), `drizzle-orm` (`^1.0.0-rc.5`), `vue` and `vue-router` are now peer
+dependencies of the layer: it uses your copies instead of shipping its own, so keep all four in
+your `package.json`.
+
 Sessions are sealed with `NUXT_APP_SECRET`, `NUXT_SESSION_PASSWORD` is no longer read. Set it in
 every env file (`openssl rand -base64 32`). The session cookies of v1 can't be opened anymore, but a
 signed-in user still has a refresh token, so the next request signs them back in without them

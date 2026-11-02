@@ -199,9 +199,6 @@ importers:
       '@types/qrcode':
         specifier: ^1.5.6
         version: 1.5.6
-      drizzle-orm:
-        specifier: 1.0.0-rc.5
-        version: 1.0.0-rc.5(@types/pg@8.23.1)(pg@8.23.1)(valibot@1.5.0(typescript@5.9.3))(zod@4.6.7)
       goku-css:
         specifier: ^9.0.8
         version: 9.0.8
@@ -232,12 +229,6 @@ importers:
       qrcode:
         specifier: ^1.5.4
         version: 1.5.4
-      vue:
-        specifier: ^3.5.44
-        version: 3.5.44(typescript@5.9.3)
-      vue-router:
-        specifier: ^5.4.0
-        version: 5.4.0(@vue/compiler-sfc@3.5.44)(esbuild@0.28.2)(pinia@4.1.0(@vue/devtools-api@8.2.1)(typescript@5.9.3)(vue@3.5.44(typescript@5.9.3)))(rolldown@1.2.16)(rollup@4.67.4)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2))(vue@3.5.44(typescript@5.9.3))
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -245,6 +236,9 @@ importers:
       drizzle-kit:
         specifier: 1.0.0-rc.5
         version: 1.0.0-rc.5(drizzle-orm@1.0.0-rc.5(@types/pg@8.23.1)(pg@8.23.1)(valibot@1.5.0(typescript@5.9.3))(zod@4.6.7))
+      drizzle-orm:
+        specifier: 1.0.0-rc.5
+        version: 1.0.0-rc.5(@types/pg@8.23.1)(pg@8.23.1)(valibot@1.5.0(typescript@5.9.3))(zod@4.6.7)
       drizzle-seed:
         specifier: 1.0.0-rc.5
         version: 1.0.0-rc.5(drizzle-orm@1.0.0-rc.5(@types/pg@8.23.1)(pg@8.23.1)(valibot@1.5.0(typescript@5.9.3))(zod@4.6.7))
@@ -266,6 +260,12 @@ importers:
       vitest:
         specifier: ^5.0.5
         version: 5.0.5(@types/node@26.6.6)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2))
+      vue:
+        specifier: ^3.5.44
+        version: 3.5.44(typescript@5.9.3)
+      vue-router:
+        specifier: ^5.4.0
+        version: 5.4.0(@vue/compiler-sfc@3.5.44)(esbuild@0.28.2)(pinia@4.1.0(@vue/devtools-api@8.2.1)(typescript@5.9.3)(vue@3.5.44(typescript@5.9.3)))(rolldown@1.2.16)(rollup@4.67.4)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2))(vue@3.5.44(typescript@5.9.3))
       vue-tsc:
         specifier: ^3.3.13
         version: 3.3.14(typescript@5.9.3)
