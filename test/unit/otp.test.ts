@@ -124,21 +124,20 @@ describe('verifyOTP', () => {
 describe('POST /api/auth/otp/verify', () => {
   const users = new Map<string, Record<string, any>>()
   const setSession = vi.fn(async (_event: unknown, user: unknown) => user)
-  const createAuth = vi.fn(async ({ email }: { email: string }) => ({ id: 'new', email }))
+  const createAuthUser = vi.fn(async (_event: unknown, { email }: { email: string }) => ({
+    id: 'new',
+    email,
+  }))
   const verify = (otp = '123456') => handler({ body: { email, otp } } as any)
 
   beforeEach(() => {
     users.clear()
     setSession.mockClear()
-    createAuth.mockClear()
+    createAuthUser.mockClear()
     vi.stubGlobal('setSession', setSession)
-    vi.stubGlobal('createAuth', createAuth)
+    vi.stubGlobal('createAuthUser', createAuthUser)
     vi.stubGlobal('requireSecondFactor', requireSecondFactor)
-    vi.stubGlobal('getAuth', async (_event: unknown, email: string) => {
-      const user = users.get(email)
-      if (!user) throw Object.assign(new Error('User not found'), { statusCode: 404 })
-      return user
-    })
+    vi.stubGlobal('findAuthUserByEmail', async (email: string) => users.get(email))
   })
 
   afterEach(() => vi.unstubAllGlobals())
@@ -163,14 +162,14 @@ describe('POST /api/auth/otp/verify', () => {
     seed()
     await expect(verify('000000')).rejects.toMatchObject({ message: 'Invalid OTP.' })
     await expect(verify()).rejects.toMatchObject({ statusCode: 404 })
-    expect(createAuth).not.toHaveBeenCalled()
+    expect(createAuthUser).not.toHaveBeenCalled()
   })
 
   it('signs up an unknown email when autoSignup is on', async () => {
     setConfig({ autoSignup: true })
     seed()
     await verify()
-    expect(createAuth).toHaveBeenCalledWith({ email }, expect.anything())
+    expect(createAuthUser).toHaveBeenCalledWith(expect.anything(), { email })
     expect(setSession).toHaveBeenCalledOnce()
   })
 })

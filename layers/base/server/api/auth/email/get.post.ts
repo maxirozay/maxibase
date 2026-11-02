@@ -13,7 +13,7 @@ export function emailChangeKey(userId: string, email: string) {
 export default defineEventHandler(async (event) => {
   await requireUserSession(event)
   const { email, locale = 'en' } = await readValidatedBody(event, bodySchema.parse)
-  const user = await getAuth(event)
+  const user = await requireAuthUser(event)
 
   if (user.email === email) {
     throw createError({ status: 400, message: 'This is already your email address.' })

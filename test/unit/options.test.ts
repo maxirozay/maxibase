@@ -9,7 +9,11 @@ beforeEach(() => resetTestState())
 describe('POST /api/auth/options', () => {
   // the sign-in form depends on it: a table it reads must not be one a missed migration lacks
   it('reads only the user and their passkeys', async () => {
-    vi.stubGlobal('getAuth', async () => ({ id: 'user-1', password: 'hash', credentials: [] }))
+    vi.stubGlobal('findAuthUserByEmail', async () => ({
+      id: 'user-1',
+      password: 'hash',
+      credentials: [],
+    }))
     expect(await options(event)).toEqual({
       hasOTP: true,
       hasPassword: true,
@@ -19,16 +23,14 @@ describe('POST /api/auth/options', () => {
   })
 
   it('answers with the defaults for an unknown email', async () => {
-    vi.stubGlobal('getAuth', async () => {
-      throw Object.assign(new Error('User not found'), { statusCode: 404 })
-    })
+    vi.stubGlobal('findAuthUserByEmail', async () => undefined)
     expect(await options(event)).toMatchObject({ hasPassword: false, hasTOTP: false })
   })
 
   // e.g. a table missing because the migration did not run: defaults would hide it
   // and send users with a password to the email code instead
   it('lets a database error through', async () => {
-    vi.stubGlobal('getAuth', async () => {
+    vi.stubGlobal('findAuthUserByEmail', async () => {
       throw new Error('relation "auth.recovery_codes" does not exist')
     })
     await expect(options(event)).rejects.toThrow('does not exist')

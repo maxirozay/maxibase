@@ -10,10 +10,7 @@ const bodySchema = z.object({
 export default defineEventHandler(async (event) => {
   const { email, otp } = await readValidatedBody(event, bodySchema.parse)
 
-  const existing = await getAuth(event, email, true).catch((error) => {
-    if (error.statusCode !== 404) throw error
-    return null
-  })
+  const existing = await findAuthUserByEmail(email, { withCredentials: true })
   if (existing) requireSecondFactor(existing)
 
   await verifyOTP(email, otp)
@@ -25,8 +22,8 @@ export default defineEventHandler(async (event) => {
 
 async function signUp(event: H3Event, email: string) {
   const session = await getUserSession(event)
-  if (session?.user?.isAnonymous) return setAuth({ id: session.user.id, email })
-  if (useRuntimeConfig().autoSignup) return createAuth({ email }, event)
+  if (session?.user?.isAnonymous) return setAuthUserEmail(session.user.id, email)
+  if (useRuntimeConfig().autoSignup) return createAuthUser(event, { email })
   throw createError({ status: 404, message: 'User not found' })
 }
 

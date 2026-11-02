@@ -1,6 +1,6 @@
 export default defineEventHandler(async (event) => {
   await requireRecentAuth(event)
-  const user = await getAuth(event, undefined, true)
+  const user = await requireAuthUser(event, { withCredentials: true })
 
   if (!user.totp && !user.credentials!.length) {
     throw createError({ status: 400, message: 'Set up a second factor first.' })

@@ -7,10 +7,7 @@ const bodySchema = z.object({
 export default defineEventHandler(async (event) => {
   const { email } = await readValidatedBody(event, bodySchema.parse)
 
-  const user = await getAuth(event, email, true).catch((error: any) => {
-    if (error?.statusCode === 404) return null
-    throw error
-  })
+  const user = await findAuthUserByEmail(email, { withCredentials: true })
   if (!user) {
     return {
       hasOTP: true,
