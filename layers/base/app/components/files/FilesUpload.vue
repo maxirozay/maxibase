@@ -11,11 +11,7 @@ const props = defineProps({
   },
   maxAge: Number,
   imageFormat: {
-    type: Object as PropType<{
-      maxHeight?: number
-      format?: string
-      quality?: number
-    }>,
+    type: Object as PropType<ImageFormat>,
   },
 })
 
@@ -29,12 +25,10 @@ async function uploadFile(event: Event) {
     let files = Array.from(input.files)
     if (props.imageFormat) {
       progress.value = 1
-      const { maxHeight, format, quality } = props.imageFormat
+      const imageFormat = props.imageFormat
       const results = await Promise.allSettled(
         files.map((file) =>
-          file.type.startsWith('image/')
-            ? formatImage(file, maxHeight, format, quality)
-            : Promise.resolve(file),
+          file.type.startsWith('image/') ? formatImage(file, imageFormat) : Promise.resolve(file),
         ),
       )
       const failed: string[] = []
@@ -45,28 +39,26 @@ async function uploadFile(event: Event) {
         return []
       })
       if (failed.length) {
-        appStore.notify('formatFailed', 'error', false, { files: failed.join(', ') })
+        appStore.notify('formatFailed', 'error', { params: { files: failed.join(', ') } })
       }
     }
     const maxSize = Number(useRuntimeConfig().public.files.maxSize)
     const tooLarge = files.filter((file) => file.size > maxSize * 1024 * 1024)
     if (tooLarge.length) {
-      appStore.notify('fileTooLarge', 'error', false, {
-        files: tooLarge.map((file) => file.name).join(', '),
-        max: maxSize,
+      appStore.notify('fileTooLarge', 'error', {
+        params: { files: tooLarge.map((file) => file.name).join(', '), max: maxSize },
       })
       files = files.filter((file) => !tooLarge.includes(file))
     }
     if (files.length) {
-      let response = await uploadFiles(
-        files,
-        props.path,
-        props.isPrivate,
-        (p) => {
+      let response = await uploadFiles(files, {
+        path: props.path,
+        isPrivate: props.isPrivate,
+        maxAge: props.maxAge,
+        onProgress: (p) => {
           progress.value = p
         },
-        props.maxAge,
-      )
+      })
       emits('uploaded', response)
       appStore.notify('saved', 'success')
     }

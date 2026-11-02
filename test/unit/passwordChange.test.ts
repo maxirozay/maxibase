@@ -35,14 +35,14 @@ describe('POST /api/auth', () => {
   it('stores the hash, logs it and warns by email', async () => {
     await change({ locale: 'fr' })
     expect(stored).toBe(`hashed:${password}`)
-    expect(logSpy).toHaveBeenCalledWith(
-      'Password changed',
-      undefined,
-      undefined,
-      'security',
-      expect.anything(),
-    )
-    expect(sendEmailTemplate).toHaveBeenCalledWith('passwordChanged', 'fr', {}, user.email)
+    expect(logSpy).toHaveBeenCalledWith('Password changed', {
+      type: 'security',
+      event: expect.anything(),
+    })
+    expect(sendEmailTemplate).toHaveBeenCalledWith('passwordChanged', {
+      to: user.email,
+      locale: 'fr',
+    })
   })
 
   it('keeps the new password when the email fails', async () => {

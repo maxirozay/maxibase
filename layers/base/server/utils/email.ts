@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer'
-import type { Transporter } from 'nodemailer'
+import type { SendMailOptions, Transporter } from 'nodemailer'
 
 export type SmtpConfig = {
   host: string
@@ -41,17 +41,27 @@ export function escapeHtml(value: unknown) {
     .replaceAll("'", '&#39;')
 }
 
-export async function sendEmail(
-  to: string,
-  subject: string,
-  html: string,
-  locale: string = 'en',
-  attachments?: any[],
-  bcc?: string,
+export type EmailOptions = {
+  to: string
+  locale?: string
+  params?: Record<string, any>
+  attachments?: SendMailOptions['attachments']
+  bcc?: string
+  replyTo?: string
+  smtp?: SmtpConfig // defaults to the runtime config's
+}
+
+export async function sendEmail({
+  subject,
+  html,
+  to,
+  locale = 'en',
   params = {},
-  replyTo?: string,
-  smtp?: SmtpConfig,
-) {
+  attachments,
+  bcc,
+  replyTo,
+  smtp,
+}: EmailOptions & { subject: string; html: string }) {
   const config = smtp ?? (useRuntimeConfig().smtp as SmtpConfig)
   const mail = await useTransporter(config).sendMail({
     from: config.from,
@@ -79,18 +89,9 @@ export async function buildEmail(html: string, locale: string = 'en', params = {
   )
 }
 
-export async function sendEmailTemplate(
-  templateId: string,
-  locale: string = 'en',
-  params: Record<string, any> = {},
-  to: string,
-  attachments?: any[],
-  bcc?: string,
-  replyTo?: string,
-  smtp?: SmtpConfig,
-) {
-  const { subject, html } = await buildEmailTemplate(templateId, locale)
-  return sendEmail(to, subject, html, locale, attachments, bcc, params, replyTo, smtp)
+export async function sendEmailTemplate(templateId: string, options: EmailOptions) {
+  const { subject, html } = await buildEmailTemplate(templateId, options.locale)
+  return sendEmail({ ...options, subject, html })
 }
 
 export async function buildEmailTemplate(templateId: string, locale: string = 'en') {

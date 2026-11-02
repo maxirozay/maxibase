@@ -12,7 +12,7 @@ const props = defineProps({
 async function deleteFile() {
   try {
     if (await appStore.confirm()) {
-      await deleteFiles(props.path!, props.isPrivate)
+      await deleteFiles(props.path!, { isPrivate: props.isPrivate })
       appStore.notify('deleted', 'success')
       emits('deleted')
     }

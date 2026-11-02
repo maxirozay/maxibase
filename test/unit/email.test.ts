@@ -187,6 +187,8 @@ describe('sendEmail', () => {
     from: 'Org <hello@org.test>',
   }
 
+  const mail = { to: 'a@b.test', subject: 'Hi', html: '<p>hi</p>' }
+
   beforeEach(() => {
     setConfig({ smtp: defaultSmtp })
     storage.set('assets:server:emails/base.html', '{{content}}')
@@ -194,7 +196,7 @@ describe('sendEmail', () => {
   })
 
   it('sends with the default config', async () => {
-    await sendEmail('a@b.test', 'Hi', '<p>hi</p>')
+    await sendEmail(mail)
     expect(sendMail).toHaveBeenLastCalledWith(expect.objectContaining({ from: defaultSmtp.from }))
     expect(createTransport).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -207,17 +209,7 @@ describe('sendEmail', () => {
   // An organization sending from its own address uses its own server and
   // credentials, and nothing from the default config reaches that server.
   it('sends with the override in place of the default config', async () => {
-    await sendEmail(
-      'a@b.test',
-      'Hi',
-      '<p>hi</p>',
-      'en',
-      undefined,
-      undefined,
-      {},
-      undefined,
-      orgSmtp,
-    )
+    await sendEmail({ ...mail, smtp: orgSmtp })
     expect(sendMail).toHaveBeenLastCalledWith(expect.objectContaining({ from: orgSmtp.from }))
     expect(createTransport).toHaveBeenLastCalledWith({
       host: orgSmtp.host,
@@ -231,28 +223,16 @@ describe('sendEmail', () => {
 
   it('reuses the transporter of a config it has already seen', async () => {
     const override = { ...orgSmtp, user: 'reuse@org.test' }
-    await sendEmail(
-      'a@b.test',
-      'Hi',
-      '<p>hi</p>',
-      'en',
-      undefined,
-      undefined,
-      {},
-      undefined,
-      override,
-    )
+    await sendEmail({ ...mail, smtp: override })
     const created = createTransport.mock.calls.length
-    await sendEmail('a@b.test', 'Hi', '<p>hi</p>', 'en', undefined, undefined, {}, undefined, {
-      ...override,
-    })
+    await sendEmail({ ...mail, smtp: { ...override } })
     expect(createTransport.mock.calls.length).toBe(created)
   })
 
   // An organization without its own server still sends from the app's address,
   // which keeps SPF and DKIM aligned, and gets the replies.
   it('sets the reply-to on the default config', async () => {
-    await sendEmail('a@b.test', 'Hi', '<p>hi</p>', 'en', undefined, undefined, {}, orgSmtp.user)
+    await sendEmail({ ...mail, replyTo: orgSmtp.user })
     expect(sendMail).toHaveBeenLastCalledWith(
       expect.objectContaining({ from: defaultSmtp.from, replyTo: orgSmtp.user }),
     )
@@ -260,23 +240,14 @@ describe('sendEmail', () => {
 
   it('passes the reply-to and the override through a template', async () => {
     storage.set('assets:server:emails/en/test.html', '<title>Hi</title><p>hi</p>')
-    await sendEmailTemplate(
-      'test',
-      'en',
-      {},
-      'a@b.test',
-      undefined,
-      undefined,
-      'reply@org.test',
-      orgSmtp,
-    )
+    await sendEmailTemplate('test', { to: 'a@b.test', replyTo: 'reply@org.test', smtp: orgSmtp })
     expect(sendMail).toHaveBeenLastCalledWith(
       expect.objectContaining({ from: orgSmtp.from, replyTo: 'reply@org.test' }),
     )
   })
 
   it('sends no reply-to unless asked', async () => {
-    await sendEmail('a@b.test', 'Hi', '<p>hi</p>')
+    await sendEmail(mail)
     expect(sendMail.mock.lastCall?.[0].replyTo).toBeUndefined()
   })
 })

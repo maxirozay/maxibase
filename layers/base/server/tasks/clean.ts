@@ -23,12 +23,11 @@ export default defineTask({
       if (result.status === 'fulfilled') continue
       success = false
       const error = result.reason
-      await log(
-        `Cleaning ${steps[i]![0]} failed: ${error?.message}`,
-        { stack: error?.stack, cause: error?.cause },
-        'clean task',
-        'error',
-      )
+      await log(`Cleaning ${steps[i]![0]} failed: ${error?.message}`, {
+        data: { stack: error?.stack, cause: error?.cause },
+        origin: 'clean task',
+        type: 'error',
+      })
     }
 
     return {

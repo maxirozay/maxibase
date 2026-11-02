@@ -30,8 +30,12 @@ export default defineEventHandler(async (event) => {
   if (otp) await useStorage('auth').removeItem(email)
   const session = await setSession(event, user)
 
-  await log('Recovery code used', { remaining }, undefined, 'security', event)
-  await sendEmailTemplate('recoveryCodeUsed', locale, { remaining }, user.email!).catch(() => {})
+  await log('Recovery code used', { data: { remaining }, type: 'security', event })
+  await sendEmailTemplate('recoveryCodeUsed', {
+    to: user.email!,
+    locale,
+    params: { remaining },
+  }).catch(() => {})
 
   return session
 })

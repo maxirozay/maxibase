@@ -7,6 +7,6 @@ const bodySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const { path, isPrivate } = await readValidatedBody(event, bodySchema.parse)
-  await deletePath(event, path, isPrivate)
+  await deletePath(event, path, { isPrivate })
   return { success: true }
 })

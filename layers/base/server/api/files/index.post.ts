@@ -17,6 +17,6 @@ export default defineEventHandler(async (event) => {
     body
       .getAll('file')
       .filter((file) => file instanceof File)
-      .map((file) => uploadFile(event, file, path, isPrivate, maxAge)),
+      .map((file) => uploadFile(event, file, { path, isPrivate, maxAge })),
   )
 })

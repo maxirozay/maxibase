@@ -15,6 +15,6 @@ export default defineEventHandler(async (event) => {
 
   if ((await verify({ secret, token })).valid) {
     await db.update(auth).set({ totp: secret }).where(eq(auth.id, user.id))
-    await setSession(event, user, false) // refresh requiresMfaSetup
+    await setSession(event, user, { refresh: false }) // refresh requiresMfaSetup
   } else throw createError({ status: 400, message: 'Invalid code.' })
 })

@@ -1,13 +1,15 @@
 import { logs } from '#server/database/schema'
 import { lt } from 'drizzle-orm/sql/expressions/conditions'
+import type { H3Event } from 'h3'
 
-export async function log(
-  summary: string,
-  data?: any,
-  origin?: string,
-  type?: string,
-  event?: any,
-) {
+export type LogOptions = {
+  data?: unknown
+  origin?: string // defaults to the event's path and method
+  type?: string
+  event?: H3Event // adds the user, IP address and user agent
+}
+
+export async function log(summary: string, { data, origin, type, event }: LogOptions = {}) {
   const session = event ? await getUserSession(event) : null
   const userAgent = event?.node?.req?.headers['user-agent']
 

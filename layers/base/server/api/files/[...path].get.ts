@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
   } = await getValidatedQuery(event, querySchema.parse)
 
   setHeader(event, 'Cache-Control', getCacheControl(isPrivate, maxAge))
-  return getFile(event, decodePath(path), isPrivate, expireIn, redirect)
+  return getFile(event, decodePath(path), { isPrivate, expireIn, redirect })
 })
 
 // h3 decodes the path but keeps %25 encoded, so a % in a name needs this second pass

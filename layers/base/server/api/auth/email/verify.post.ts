@@ -35,10 +35,18 @@ export default defineEventHandler(async (event) => {
     throw createError({ status: 500, message: 'User update failed' })
   }
 
-  await log('Email changed', { from: previousEmail, to: email }, undefined, 'security', event)
+  await log('Email changed', {
+    data: { from: previousEmail, to: email },
+    type: 'security',
+    event,
+  })
 
   if (previousEmail) {
-    await sendEmailTemplate('emailChanged', locale, { email }, previousEmail).catch(() => {})
+    await sendEmailTemplate('emailChanged', {
+      to: previousEmail,
+      locale,
+      params: { email },
+    }).catch(() => {})
   }
 
   await revokeAllUserTokens(user.id)

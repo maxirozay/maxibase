@@ -42,6 +42,24 @@ function getContentType(path: string, type?: string) {
   return mime.getType(path) || 'application/octet-stream'
 }
 
+export type FileOptions = {
+  isPrivate?: boolean
+}
+
+export type UploadOptions = FileOptions & {
+  path?: string
+  maxAge?: number // only stored on S3 objects, local files get their headers from nginx
+}
+
+export type CopyOptions = FileOptions & {
+  deleteSrc?: boolean
+}
+
+export type S3ObjectOptions = FileOptions & {
+  contentType?: string
+  cacheControl?: string // defaults to getCacheControl(isPrivate)
+}
+
 function fileTooLarge() {
   const { maxSize } = useRuntimeConfig().public.files
   return createError({ status: 413, message: `File too large, max ${maxSize} MB` })
@@ -58,9 +76,7 @@ export async function readUploadBody(event: H3Event, maxMB: number) {
 export async function uploadFile(
   event: H3Event,
   file: File,
-  path = 'files',
-  isPrivate = true,
-  maxAge?: number, // only stored on S3 objects, local files get their headers from nginx
+  { path = 'files', isPrivate = true, maxAge }: UploadOptions = {},
 ) {
   await checkFileAccess(event, path)
   path = getUploadPath(path, isPrivate, file.name)
@@ -69,13 +85,11 @@ export async function uploadFile(
   let url
   if (useS3()) {
     const s3Key = getS3Key(path)
-    url = await uploadToS3(
-      s3Key,
-      data,
-      getContentType(path, file.type),
-      getCacheControl(isPrivate, maxAge),
+    url = await uploadToS3(s3Key, data, {
+      contentType: getContentType(path, file.type),
+      cacheControl: getCacheControl(isPrivate, maxAge),
       isPrivate,
-    )
+    })
   } else {
     const filePath = join(process.cwd(), path)
     const folderPath = filePath.replace(/\/[^/]*$/, '')
@@ -91,21 +105,17 @@ export async function uploadFile(
 export async function uploadStream(
   event: H3Event,
   file: { stream: Readable; filename?: string; type?: string },
-  path = 'files',
-  isPrivate = true,
-  maxAge?: number,
+  { path = 'files', isPrivate = true, maxAge }: UploadOptions = {},
 ) {
   await checkFileAccess(event, path)
   path = getUploadPath(path, isPrivate, file.filename)
 
   if (useS3()) {
-    return uploadStreamToS3(
-      getS3Key(path),
-      file.stream,
-      file.type || getContentType(path),
-      getCacheControl(isPrivate, maxAge),
+    return uploadStreamToS3(getS3Key(path), file.stream, {
+      contentType: file.type || getContentType(path),
+      cacheControl: getCacheControl(isPrivate, maxAge),
       isPrivate,
-    )
+    })
   }
 
   const filePath = join(process.cwd(), path)
@@ -169,24 +179,27 @@ export async function uploadChunk(
 
   if (useS3()) {
     if (!uploadId) {
-      uploadId = (await initMultipartUploadToS3(
-        getS3Key(path),
-        getContentType(path, type),
+      uploadId = (await initMultipartUploadToS3(getS3Key(path), {
+        contentType: getContentType(path, type),
+        cacheControl: getCacheControl(isPrivate, maxAge),
         isPrivate,
-        getCacheControl(isPrivate, maxAge),
-      ))!
+      }))!
       parts = []
     }
 
     if (parts.length < totalChunks) {
-      const part = await uploadPartToS3(getS3Key(path), chunk, uploadId!, chunkIndex + 1, isPrivate)
+      const part = await uploadPartToS3(getS3Key(path), chunk, {
+        uploadId: uploadId!,
+        partNumber: chunkIndex + 1,
+        isPrivate,
+      })
       if (part) parts.push(part)
       if (parts.length < totalChunks) {
         return { uploadId, parts }
       }
     }
 
-    return completeMultipartUploadToS3(getS3Key(path), uploadId!, parts, isPrivate)
+    return completeMultipartUploadToS3(getS3Key(path), { uploadId: uploadId!, parts, isPrivate })
   }
 
   if (!uploadId) {
@@ -318,9 +331,11 @@ export function parseRangeHeader(range: string | undefined, size: number) {
 export async function getFile(
   event: H3Event,
   path: string,
-  isPrivate = false,
-  expireIn?: number,
-  redirect?: boolean,
+  {
+    isPrivate = false,
+    expireIn,
+    redirect, // defaults to the s3.redirect config
+  }: FileOptions & { expireIn?: number; redirect?: boolean } = {},
 ) {
   await checkFileAccess(event, path)
   path = getSecurePath(path, isPrivate)
@@ -330,7 +345,7 @@ export async function getFile(
   const range = getRequestHeader(event, 'range')
 
   if (useS3()) {
-    const url = await getS3SignedUrl(getS3Key(path), expireIn, isPrivate)
+    const url = await getS3SignedUrl(getS3Key(path), { expireIn, isPrivate })
 
     if (redirect ?? useRuntimeConfig().s3.redirect) {
       setHeader(event, 'Cache-Control', 'no-store')
@@ -390,7 +405,11 @@ export async function getFile(
   return Readable.toWeb(createReadStream(fullPath))
 }
 
-export async function deletePath(event: H3Event, path: string, isPrivate = true) {
+export async function deletePath(
+  event: H3Event,
+  path: string,
+  { isPrivate = true }: FileOptions = {},
+) {
   await checkFileAccess(event, path)
   await removePath(path, isPrivate)
 }
@@ -409,7 +428,7 @@ async function removePath(path: string, isPrivate: boolean) {
   path = getSecurePath(path, isPrivate)
   // An empty path resolves to the root folder, deleting it would wipe every file
   if (path === getSecurePath('', isPrivate)) throw invalidPath()
-  if (useS3()) await deleteFromS3(path, isPrivate)
+  if (useS3()) await deleteFromS3(path, { isPrivate })
   else {
     const localPath = join(process.cwd(), path)
     await rm(localPath, { recursive: true, force: true })
@@ -441,12 +460,12 @@ type ListedFile = {
 export async function listFolder(
   event: H3Event,
   path: string,
-  isPrivate = true,
+  { isPrivate = true }: FileOptions = {},
 ): Promise<ListedFile[]> {
   await checkFileAccess(event, path)
   path = getSecurePath(path, isPrivate)
 
-  if (useS3()) return await listFromS3(path, isPrivate)
+  if (useS3()) return await listFromS3(path, { isPrivate })
   return listLocal(path, isPrivate)
 }
 
@@ -473,8 +492,7 @@ export async function copyFile(
   event: H3Event,
   src: string,
   dest: string,
-  isPrivate = true,
-  deleteSrc = false,
+  { isPrivate = true, deleteSrc = false }: CopyOptions = {},
 ) {
   await checkFileAccess(event, src)
   await checkFileAccess(event, dest)
@@ -483,7 +501,7 @@ export async function copyFile(
   // A copy onto itself would truncate the file, and a move would then delete it
   if (src === dest) return
 
-  if (useS3()) return copyFromS3(src, dest, isPrivate, deleteSrc)
+  if (useS3()) return copyFromS3(src, dest, { isPrivate, deleteSrc })
 
   const srcPath = join(process.cwd(), src)
   const destPath = join(process.cwd(), dest)
@@ -495,7 +513,7 @@ export async function copyFile(
   await fsCopyFile(srcPath, destPath)
 
   if (deleteSrc) {
-    await deletePath(event, removeRoot(src, isPrivate), isPrivate)
+    await deletePath(event, removeRoot(src, isPrivate), { isPrivate })
   }
 }
 
@@ -503,10 +521,9 @@ export async function copyFiles(
   event: H3Event,
   src: string,
   dest: string,
-  isPrivate = true,
-  deleteSrc = false,
+  { isPrivate = true, deleteSrc = false }: CopyOptions = {},
 ) {
-  const files = await listFolder(event, src, isPrivate)
+  const files = await listFolder(event, src, { isPrivate })
   if (!files.length) throw createError({ status: 404, message: 'File not found' })
   const normalizedSrc = removeRoot(getSecurePath(src, isPrivate), isPrivate)
   const normalizedDest = removeRoot(getSecurePath(dest, isPrivate), isPrivate)
@@ -516,8 +533,7 @@ export async function copyFiles(
         event,
         file.path,
         join(normalizedDest, file.path.substring(normalizedSrc.length + 1)),
-        isPrivate,
-        deleteSrc,
+        { isPrivate, deleteSrc },
       ),
     ),
   )
@@ -613,15 +629,17 @@ export function parseMaxAge(value?: string) {
 export async function uploadToS3(
   key: string,
   body: Buffer,
-  contentType: string,
-  cache?: string,
-  isPrivate = true,
+  {
+    contentType = 'application/octet-stream',
+    cacheControl,
+    isPrivate = true,
+  }: S3ObjectOptions = {},
 ) {
   const client = useS3()
   if (!client) return null
 
   const config = useRuntimeConfig()
-  cache ||= getCacheControl(isPrivate)
+  cacheControl ||= getCacheControl(isPrivate)
 
   await client.send(
     new PutObjectCommand({
@@ -629,7 +647,7 @@ export async function uploadToS3(
       Key: key,
       Body: body,
       ContentType: contentType,
-      CacheControl: cache,
+      CacheControl: cacheControl,
       ACL: isPrivate ? undefined : 'public-read',
     }),
   )
@@ -640,15 +658,17 @@ export async function uploadToS3(
 export async function uploadStreamToS3(
   key: string,
   body: Readable,
-  contentType: string,
-  cache?: string,
-  isPrivate = true,
+  {
+    contentType = 'application/octet-stream',
+    cacheControl,
+    isPrivate = true,
+  }: S3ObjectOptions = {},
 ) {
   const client = useS3()
   if (!client) return null
 
   const config = useRuntimeConfig()
-  cache ||= getCacheControl(isPrivate)
+  cacheControl ||= getCacheControl(isPrivate)
   const partSize = 5 * 1024 * 1024 // S3 minimum, only the last part may be smaller
 
   let uploadId: string | undefined
@@ -658,9 +678,13 @@ export async function uploadStreamToS3(
 
   const sendPart = async (part: Buffer) => {
     if (!uploadId) {
-      uploadId = (await initMultipartUploadToS3(key, contentType, isPrivate, cache))!
+      uploadId = (await initMultipartUploadToS3(key, { contentType, cacheControl, isPrivate }))!
     }
-    const uploaded = await uploadPartToS3(key, part, uploadId, parts.length + 1, isPrivate)
+    const uploaded = await uploadPartToS3(key, part, {
+      uploadId,
+      partNumber: parts.length + 1,
+      isPrivate,
+    })
     if (uploaded) parts.push(uploaded)
   }
 
@@ -679,12 +703,16 @@ export async function uploadStreamToS3(
 
     // Never reached a full part, so there is nothing to assemble.
     if (!uploadId) {
-      return uploadToS3(key, Buffer.concat(pending, pendingSize), contentType, cache, isPrivate)
+      return uploadToS3(key, Buffer.concat(pending, pendingSize), {
+        contentType,
+        cacheControl,
+        isPrivate,
+      })
     }
 
     if (pendingSize) await sendPart(Buffer.concat(pending, pendingSize))
 
-    return completeMultipartUploadToS3(key, uploadId, parts, isPrivate)
+    return completeMultipartUploadToS3(key, { uploadId, parts, isPrivate })
   } catch (error) {
     if (uploadId) {
       await client
@@ -703,9 +731,11 @@ export async function uploadStreamToS3(
 
 export async function initMultipartUploadToS3(
   key: string,
-  contentType: string,
-  isPrivate = true,
-  cache?: string,
+  {
+    contentType = 'application/octet-stream',
+    cacheControl,
+    isPrivate = true,
+  }: S3ObjectOptions = {},
 ) {
   const client = useS3()
   if (!client) return null
@@ -716,7 +746,7 @@ export async function initMultipartUploadToS3(
     Bucket: isPrivate ? config.s3.privateBucket : config.s3.publicBucket,
     Key: key,
     ContentType: contentType,
-    CacheControl: cache || getCacheControl(isPrivate),
+    CacheControl: cacheControl || getCacheControl(isPrivate),
     ACL: isPrivate ? undefined : 'public-read',
   })
 
@@ -727,9 +757,11 @@ export async function initMultipartUploadToS3(
 export async function uploadPartToS3(
   key: string,
   body: Buffer,
-  uploadId: string,
-  partNumber: number,
-  isPrivate = true,
+  {
+    uploadId,
+    partNumber,
+    isPrivate = true,
+  }: FileOptions & { uploadId: string; partNumber: number },
 ) {
   const client = useS3()
   if (!client) return null
@@ -751,9 +783,7 @@ export async function uploadPartToS3(
 
 export async function completeMultipartUploadToS3(
   key: string,
-  uploadId: string,
-  parts: CompletedPart[],
-  isPrivate = true,
+  { uploadId, parts, isPrivate = true }: FileOptions & { uploadId: string; parts: CompletedPart[] },
 ) {
   const client = useS3()
   if (!client) return null
@@ -773,7 +803,7 @@ export async function completeMultipartUploadToS3(
   return isPrivate ? getFileURL(key) : getS3URL(key)
 }
 
-export async function deleteFromS3(path: string, isPrivate = true) {
+export async function deleteFromS3(path: string, { isPrivate = true }: FileOptions = {}) {
   const client = useS3()
   if (!client) return
 
@@ -818,7 +848,7 @@ export async function deleteFromS3(path: string, isPrivate = true) {
   } while (ContinuationToken)
 }
 
-export async function listFromS3(path: string, isPrivate = true) {
+export async function listFromS3(path: string, { isPrivate = true }: FileOptions = {}) {
   const client = useS3()
   if (!client) return []
 
@@ -851,7 +881,11 @@ export async function listFromS3(path: string, isPrivate = true) {
   return files
 }
 
-export async function copyFromS3(src: string, dest: string, isPrivate = true, deleteSrc = false) {
+export async function copyFromS3(
+  src: string,
+  dest: string,
+  { isPrivate = true, deleteSrc = false }: CopyOptions = {},
+) {
   const client = useS3()
   if (!client) return
 
@@ -886,7 +920,10 @@ function getS3URL(path: string) {
   return `${config.public.files.url}/${encodePath(getS3Key(path))}`
 }
 
-async function getS3SignedUrl(key: string, expiresIn = 3600, isPrivate = true): Promise<string> {
+async function getS3SignedUrl(
+  key: string,
+  { expireIn = 3600, isPrivate = true }: FileOptions & { expireIn?: number } = {},
+): Promise<string> {
   const client = useS3()
   if (!client) return ''
 
@@ -897,5 +934,5 @@ async function getS3SignedUrl(key: string, expiresIn = 3600, isPrivate = true): 
     Key: getS3Key(key),
   })
 
-  return await getSignedUrl(client, command, { expiresIn })
+  return await getSignedUrl(client, command, { expiresIn: expireIn })
 }

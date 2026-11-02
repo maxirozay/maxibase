@@ -38,11 +38,9 @@ const db = {
   }),
 }
 
-const sendEmailTemplate = vi.fn(
-  async (_id: string, _locale: string, _params: object, to: string) => {
-    if (to.startsWith('fail')) throw new Error('SMTP down')
-  },
-)
+const sendEmailTemplate = vi.fn(async (_id: string, { to }: { to: string }) => {
+  if (to.startsWith('fail')) throw new Error('SMTP down')
+})
 
 const deleteUserFiles = vi.fn(async (id: string) => {
   if (id.startsWith('fail')) throw new Error('S3 down')
@@ -78,11 +76,9 @@ describe('cleanInactiveUsers', () => {
     await cleanInactiveUsers()
     expect(deleteUserFiles.mock.calls).toEqual([['a'], ['b']])
     expect(deleted).toEqual(['a', 'b'])
-    expect(logSpy).toHaveBeenCalledWith(
-      'Deleted 2 users inactive for 730 days',
-      undefined,
-      'clean task',
-    )
+    expect(logSpy).toHaveBeenCalledWith('Deleted 2 users inactive for 730 days', {
+      origin: 'clean task',
+    })
   })
 
   // Deleting the row first would orphan the files, with nothing left to retry them.
@@ -122,18 +118,16 @@ describe('cleanInactiveUsers', () => {
   it('announces the deletion date in the user locale', async () => {
     toWarn = [user('fr', 'fr'), user('none', null)]
     await cleanInactiveUsers()
-    expect(sendEmailTemplate).toHaveBeenCalledWith(
-      'inactiveDeletion',
-      'fr',
-      { date: '2 janvier 2028' },
-      'fr@example.com',
-    )
-    expect(sendEmailTemplate).toHaveBeenCalledWith(
-      'inactiveDeletion',
-      'en',
-      { date: 'January 2, 2028' },
-      'none@example.com',
-    )
+    expect(sendEmailTemplate).toHaveBeenCalledWith('inactiveDeletion', {
+      to: 'fr@example.com',
+      locale: 'fr',
+      params: { date: '2 janvier 2028' },
+    })
+    expect(sendEmailTemplate).toHaveBeenCalledWith('inactiveDeletion', {
+      to: 'none@example.com',
+      locale: 'en',
+      params: { date: 'January 2, 2028' },
+    })
     expect(warned).toEqual(['fr', 'none'])
   })
 
@@ -150,10 +144,8 @@ describe('cleanInactiveUsers', () => {
     toWarn = [user('fail'), user('ok')]
     await expect(cleanInactiveUsers()).rejects.toThrow('Inactive users: 1 warnings failed to send')
     expect(warned).toEqual(['ok'])
-    expect(logSpy).toHaveBeenCalledWith(
-      'Warned 1 inactive users of their deletion',
-      undefined,
-      'clean task',
-    )
+    expect(logSpy).toHaveBeenCalledWith('Warned 1 inactive users of their deletion', {
+      origin: 'clean task',
+    })
   })
 })

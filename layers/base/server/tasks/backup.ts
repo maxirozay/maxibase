@@ -12,17 +12,18 @@ export default defineTask({
       const agePublicKey = config.backup.agePublicKey
       const backupName = `backups/backup-${timestamp}.dump${agePublicKey ? '.age' : ''}`
 
-      await createDatabaseBackup(backupName, config.db, config.backup.dumpArgs, agePublicKey)
+      await createDatabaseBackup(backupName, {
+        dbUrl: config.db,
+        dumpArgs: config.backup.dumpArgs,
+        agePublicKey,
+      })
       if (config.s3.privateBucket) {
-        await uploadStreamToS3(
-          backupName,
-          createReadStream(backupName),
-          'application/octet-stream',
-          'private',
-          true,
-        )
+        await uploadStreamToS3(backupName, createReadStream(backupName), {
+          cacheControl: 'private',
+          isPrivate: true,
+        })
       }
-      await log('Backup created', { backupName }, 'backup task', 'info')
+      await log('Backup created', { data: { backupName }, origin: 'backup task', type: 'info' })
 
       return {
         result: {
@@ -30,7 +31,11 @@ export default defineTask({
         },
       }
     } catch (error: any) {
-      await log(error.message, { stack: error.stack, cause: error.cause }, 'backup task', 'error')
+      await log(error.message, {
+        data: { stack: error.stack, cause: error.cause },
+        origin: 'backup task',
+        type: 'error',
+      })
 
       return {
         result: {

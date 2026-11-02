@@ -18,9 +18,9 @@ export default defineEventHandler(async (event) => {
     })
     .where(eq(auth.id, user.id))
 
-  await log('Password changed', undefined, undefined, 'security', event)
+  await log('Password changed', { type: 'security', event })
 
   if (user.email) {
-    await sendEmailTemplate('passwordChanged', locale, {}, user.email).catch(() => {})
+    await sendEmailTemplate('passwordChanged', { to: user.email, locale }).catch(() => {})
   }
 })

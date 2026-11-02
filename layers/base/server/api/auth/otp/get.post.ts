@@ -43,15 +43,14 @@ export default defineEventHandler(async (event) => {
   })
 
   try {
-    await sendEmailTemplate(
-      'otp',
+    await sendEmailTemplate('otp', {
+      to: email,
       locale,
-      {
+      params: {
         otp,
         magicLink: `${baseUrl}${magicLinkPath}?email=${encodeURIComponent(email)}&token=${token}${linkGoto ? `&goto=${encodeURIComponent(linkGoto)}` : ''}`,
       },
-      email,
-    )
+    })
   } catch (error) {
     await storage.removeItem(email)
     throw createError({
