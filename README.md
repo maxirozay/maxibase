@@ -289,15 +289,15 @@ A project's `package.json` looks like this. Add any package your own files impor
     "typecheck": "nuxt typecheck"
   },
   "dependencies": {
-    "drizzle-orm": "1.0.0-rc.3",
+    "drizzle-orm": "1.0.0-rc.5",
     "goku-css": "^9.0.8",
     "maxibase": "^1.0.0",
     "nuxt": "^4.6.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
-    "drizzle-kit": "1.0.0-rc.3",
-    "drizzle-seed": "1.0.0-rc.3",
+    "drizzle-kit": "1.0.0-rc.5",
+    "drizzle-seed": "1.0.0-rc.5",
     "oxfmt": "^0.72.0",
     "oxlint": "^1.87.0",
     "typescript": "^5.9.3",
