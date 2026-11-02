@@ -8,7 +8,8 @@ export async function checkFileAccess(event: any, path: string) {
 
   if (path.startsWith('o/')) {
     const orgId = path.substring(2).replace(/\/.*/, '')
-    if (await isOrganizationAdmin(event, orgId)) return true
+    await requireOrganizationAdmin(event, orgId)
+    return true
   } else if (user.role === 'admin') return true
 
   throw createError({ status: 403, message: 'Insufficient permissions' })
