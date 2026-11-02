@@ -16,10 +16,7 @@ export default defineEventHandler(async (event) => {
     }).parse,
   )
 
-  const user = await getAuth(event, email, true).catch((error: any) => {
-    if (error?.statusCode === 404) return null
-    throw error
-  })
+  const user = await findAuthUserByEmail(email, { withCredentials: true })
 
   if (!user?.password) {
     // Burn comparable time so the timing does not leak what the status hides.

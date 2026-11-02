@@ -60,10 +60,9 @@ beforeEach(() => {
   sendEmailTemplate.mockClear()
   vi.stubGlobal('db', db)
   vi.stubGlobal('passwordSchema', passwordSchema)
-  vi.stubGlobal('getAuth', async (_event: unknown, email: string) => {
-    if (email === user.email) return user
-    throw Object.assign(new Error('User not found'), { statusCode: 404 })
-  })
+  vi.stubGlobal('findAuthUserByEmail', async (email: string) =>
+    email === user.email ? user : undefined,
+  )
   vi.stubGlobal('enforceRateLimit', async () => {})
   vi.stubGlobal('setSession', setSession)
   vi.stubGlobal('sendEmailTemplate', sendEmailTemplate)

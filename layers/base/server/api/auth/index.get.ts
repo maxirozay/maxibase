@@ -1,6 +1,6 @@
 export default defineEventHandler(async (event) => {
   await requireUserSession(event)
-  const user = await getAuth(event, undefined, true)
+  const user = await requireAuthUser(event, { withCredentials: true })
   return {
     credentials: user.credentials!.map(({ id, name }) => ({ id, name })),
     hasPassword: !!user.password,

@@ -15,10 +15,7 @@ export async function verifyFirstFactor(
     })
   }
 
-  const user = await getAuth(event, email).catch((error: any) => {
-    if (error?.statusCode === 404) return null
-    throw error
-  })
+  const user = await findAuthUserByEmail(email)
 
   if (otp) await verifyOTP(email, otp, false)
   else if (!user?.password) {

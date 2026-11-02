@@ -18,7 +18,8 @@ export default defineWebAuthnAuthenticateEventHandler({
     return { userVerification: passkeyUserVerification() }
   },
   async allowCredentials(event, userName) {
-    const user = await getAuth(event, userName, true)
+    const user = await findAuthUserByEmail(userName, { withCredentials: true })
+    if (!user) throw createError({ status: 404, message: 'User not found' })
     return (user as any).credentials || []
   },
   async getCredential(event, credentialId) {

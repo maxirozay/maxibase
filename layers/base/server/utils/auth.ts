@@ -45,12 +45,13 @@ export function requireUserVerification(userVerified: boolean) {
   }
 }
 
-export async function createAuth(user: Pick<AuthUser, 'email'>, event: H3Event) {
+// Without an email, the user is anonymous
+export async function createAuthUser(event: H3Event, { email }: { email?: string } = {}) {
   const insertedUsers = await db
     .insert(authUsers)
     .values({
-      email: user.email?.trim().toLowerCase(),
-      locale: event && useLocaleServerMiddleware(event).current,
+      email: email?.trim().toLowerCase(),
+      locale: useLocaleServerMiddleware(event).current,
     })
     .returning()
   if (!insertedUsers[0]) {
@@ -62,39 +63,41 @@ export async function createAuth(user: Pick<AuthUser, 'email'>, event: H3Event) 
   return insertedUsers[0]
 }
 
-export async function setAuth(user: Pick<AuthUser, 'id' | 'email'>) {
-  const insertedUsers = await db
+export async function setAuthUserEmail(id: string, email: string) {
+  const updatedUsers = await db
     .update(authUsers)
     .set({
-      email: user.email?.trim().toLowerCase(),
+      email: email.trim().toLowerCase(),
     })
-    .where(eq(authUsers.id, user.id))
+    .where(eq(authUsers.id, id))
     .returning()
-  if (!insertedUsers[0]) {
+  if (!updatedUsers[0]) {
     throw createError({
       status: 500,
       message: 'User update failed',
     })
   }
-  return insertedUsers[0]
+  return updatedUsers[0]
 }
 
-export async function getAuth(event: H3Event, email?: string, credentials = false) {
-  const id = email ? undefined : (await getUserSession(event)).user?.id
+type UserQueryOptions = { withCredentials?: boolean }
+
+export async function requireAuthUser(
+  event: H3Event,
+  { withCredentials = false }: UserQueryOptions = {},
+) {
+  const id = (await getUserSession(event)).user?.id
   // an undefined filter is dropped by drizzle, which would match an arbitrary user
-  if (!email && !id) {
+  if (!id) {
     throw createError({
       status: 401,
       message: 'Not authenticated',
     })
   }
 
-  const where = email ? { email: email.trim().toLowerCase() } : { id }
   const user = await db.query.authUsers.findFirst({
-    where,
-    with: {
-      credentials,
-    },
+    where: { id },
+    with: { credentials: withCredentials },
   })
   if (!user) {
     throw createError({
@@ -103,6 +106,16 @@ export async function getAuth(event: H3Event, email?: string, credentials = fals
     })
   }
   return user
+}
+
+export function findAuthUserByEmail(
+  email: string,
+  { withCredentials = false }: UserQueryOptions = {},
+) {
+  return db.query.authUsers.findFirst({
+    where: { email: email.trim().toLowerCase() },
+    with: { credentials: withCredentials },
+  })
 }
 
 // refresh: false keeps the refresh token and authenticatedAt, to update the session data only

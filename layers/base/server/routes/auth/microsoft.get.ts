@@ -11,15 +11,11 @@ async function onSuccess(event: H3Event, { tokens }: { tokens: any }) {
     })
   }
 
-  const auth = await getAuth(event, claims.email).catch((error) => {
-    const config = useRuntimeConfig()
-
-    if (error.statusCode === 404 && config.autoSignup) {
-      return createAuth({ email: claims.email }, event)
-    }
-    throw error
-  })
-  await setSession(event, auth)
+  const user =
+    (await findAuthUserByEmail(claims.email)) ??
+    (useRuntimeConfig().autoSignup ? await createAuthUser(event, { email: claims.email }) : null)
+  if (!user) throw createError({ status: 404, message: 'User not found' })
+  await setSession(event, user)
   return sendRedirect(event, '/')
 }
 
