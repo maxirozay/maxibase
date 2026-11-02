@@ -6,25 +6,31 @@ import {
   verifyRefreshToken,
   revokeRefreshToken,
   hashRefreshToken,
+  cleanRefreshTokens,
 } from '#server-utils/auth'
 
 // Conditions as plain data, so the in-memory db below can apply them
 vi.mock('drizzle-orm', async (importOriginal) => ({
   ...(await importOriginal<typeof import('drizzle-orm')>()),
   eq: (column: unknown, value: unknown) => ({ column, value }),
+  lte: (column: unknown, value: unknown) => ({ column, value, lte: true }),
 }))
 
 type Row = { token: string; userId: string; createdAt: Date }
-type Condition = { column: unknown; value: unknown }
+type Condition = { column: unknown; value: any; lte?: boolean }
 
 let rows: Row[] = []
 const cookies = new Map<string, string>()
 const event = {} as any
 
 const matches =
-  ({ column, value }: Condition) =>
+  ({ column, value, lte }: Condition) =>
   (row: Row) =>
-    column === refreshTokens.token && row.token === value
+    lte
+      ? column === refreshTokens.createdAt && row.createdAt <= value
+      : column === refreshTokens.token && row.token === value
+
+const hoursAgo = (hours: number) => new Date(Date.now() - hours * 3600 * 1000)
 
 const db = {
   query: {
@@ -88,5 +94,23 @@ describe('refresh tokens', () => {
     const token = await createRefreshToken('user-1', event)
     await revokeRefreshToken(token)
     expect(rows).toEqual([])
+  })
+
+  it('rejects an expired token and deletes it', async () => {
+    rows.push({ token: hashRefreshToken('old'), userId: 'user-1', createdAt: hoursAgo(2) })
+    cookies.set('refresh_token', 'old')
+    await expect(verifyRefreshToken(event)).rejects.toMatchObject({ statusCode: 401 })
+    expect(rows).toEqual([])
+    expect(cookies.has('refresh_token')).toBe(false)
+  })
+
+  // An expired token nobody sends again would otherwise stay in the table forever
+  it('cleans only the expired tokens', async () => {
+    rows.push(
+      { token: 'expired', userId: 'user-1', createdAt: hoursAgo(2) },
+      { token: 'valid', userId: 'user-1', createdAt: hoursAgo(0.5) },
+    )
+    await cleanRefreshTokens()
+    expect(rows.map((row) => row.token)).toEqual(['valid'])
   })
 })

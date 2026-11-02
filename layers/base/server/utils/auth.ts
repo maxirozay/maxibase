@@ -307,12 +307,8 @@ export async function verifyRefreshToken(event: H3Event) {
     })
   }
 
-  const config = useRuntimeConfig()
-  const createdAt = refreshToken.createdAt.getTime()
-  const creationExpiredAt = Date.now() - config.refreshToken.maxAge * 1000
-
-  if (createdAt < creationExpiredAt) {
-    await revokeExpiredRefreshToken(new Date(creationExpiredAt))
+  if (refreshToken.createdAt <= refreshTokenCutoff()) {
+    await cleanRefreshTokens()
     deleteCookie(event, 'refresh_token')
     throw createError({
       status: 401,
@@ -328,8 +324,12 @@ export async function revokeRefreshToken(token: string) {
   await db.delete(refreshTokens).where(eq(refreshTokens.token, hashRefreshToken(token)))
 }
 
-export async function revokeExpiredRefreshToken(creationExpiredAt: Date) {
-  await db.delete(refreshTokens).where(lte(refreshTokens.createdAt, creationExpiredAt))
+function refreshTokenCutoff() {
+  return new Date(Date.now() - useRuntimeConfig().refreshToken.maxAge * 1000)
+}
+
+export async function cleanRefreshTokens() {
+  await db.delete(refreshTokens).where(lte(refreshTokens.createdAt, refreshTokenCutoff()))
 }
 
 export async function revokeAllUserTokens(userId: string) {

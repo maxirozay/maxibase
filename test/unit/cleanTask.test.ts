@@ -9,6 +9,7 @@ const steps = {
   cleanOldS3Backups: vi.fn(),
   cleanLogs: vi.fn(),
   cleanTempUploads: vi.fn(),
+  cleanRefreshTokens: vi.fn(),
   cleanInactiveUsers: vi.fn(),
 }
 
@@ -24,12 +25,13 @@ beforeEach(() => {
 const withS3 = () => setConfig({ s3: { privateBucket: 'private' } })
 
 describe('clean task', () => {
-  it('cleans the server backups, logs and uploads', async () => {
+  it('cleans the server backups, logs, uploads and refresh tokens', async () => {
     expect(await task.run()).toEqual({ result: { success: true } })
     expect(steps.cleanOldBackups).toHaveBeenCalledOnce()
     expect(steps.cleanOldS3Backups).not.toHaveBeenCalled()
     expect(steps.cleanLogs).toHaveBeenCalledOnce()
     expect(steps.cleanTempUploads).toHaveBeenCalledOnce()
+    expect(steps.cleanRefreshTokens).toHaveBeenCalledOnce()
     expect(steps.cleanInactiveUsers).not.toHaveBeenCalled()
     expect(logSpy).not.toHaveBeenCalled()
   })
