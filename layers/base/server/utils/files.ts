@@ -326,7 +326,7 @@ export async function getFile(
   event: H3Event,
   path: string,
   {
-    isPrivate = false,
+    isPrivate = true,
     expireIn,
     redirect, // defaults to the s3.redirect config
   }: FileOptions & { expireIn?: number; redirect?: boolean } = {},

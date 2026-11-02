@@ -9,6 +9,6 @@ const querySchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const { path, isPrivate = false } = await getValidatedQuery(event, querySchema.parse)
+  const { path, isPrivate = true } = await getValidatedQuery(event, querySchema.parse)
   return listFolder(event, path, { isPrivate })
 })
