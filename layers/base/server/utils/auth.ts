@@ -87,7 +87,6 @@ export async function requireAuthUser(
   { withCredentials = false }: UserQueryOptions = {},
 ) {
   const id = (await getUserSession(event)).user?.id
-  // an undefined filter is dropped by drizzle, which would match an arbitrary user
   if (!id) {
     throw createError({
       status: 401,

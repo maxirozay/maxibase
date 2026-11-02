@@ -5,6 +5,35 @@ v2 moves the layer to Nuxt 5 and groups every breaking change in one release.
 None of the changes below need a database migration: the SQL table and column names stay the
 same, `pnpm db:generate` produces nothing.
 
+## Drizzle 1.0.0-rc.5
+
+The layer uses `drizzle-orm` `1.0.0-rc.5`. Set `drizzle-orm`, `drizzle-kit` and `drizzle-seed` to
+`1.0.0-rc.5` in your `package.json`.
+
+drizzle-kit now stores snapshots in a new format and refuses to generate against the old ones.
+Upgrade your migrations folder once, it rewrites the `snapshot.json` files and leaves the
+`migration.sql` files as they are:
+
+```sh
+npx drizzle-kit up
+```
+
+A relational query (`db.query.….findMany`, `findFirst`) now throws on a `where` field that is
+`undefined`, where it used to skip it. Use `EmptyFilter` for a filter that is optional:
+
+```ts
+import { EmptyFilter } from 'drizzle-orm/relations'
+
+await db.query.authLogs.findMany({ where: { type: type ?? EmptyFilter } })
+```
+
+A relation filter that is an empty object (`where: { posts: {} }`) is now skipped. Use
+`posts: true` for "has at least one".
+
+See the [rc.4](https://github.com/drizzle-team/drizzle-orm/releases/tag/v1.0.0-rc.4) and
+[rc.5](https://github.com/drizzle-team/drizzle-orm/releases/tag/v1.0.0-rc.5) release notes for the
+rest, mostly other drivers and dialects.
+
 ## Database tables
 
 The layer's tables are exported with an `auth` prefix, so a project table of the same name, like a

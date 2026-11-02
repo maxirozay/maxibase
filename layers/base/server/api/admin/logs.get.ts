@@ -1,4 +1,5 @@
 import z from 'zod'
+import { EmptyFilter } from 'drizzle-orm/relations'
 
 const querySchema = z.object({
   from: z.iso.datetime(),
@@ -18,14 +19,14 @@ export default defineEventHandler(async (event) => {
         gte: new Date(from),
         lte: new Date(to),
       },
-      type: type ? { eq: type } : undefined,
+      type: type ? { eq: type } : EmptyFilter,
       OR: text
         ? [
             { summary: { ilike: text } },
             { origin: { ilike: text } },
             { user: { email: { ilike: text } } },
           ]
-        : undefined,
+        : EmptyFilter,
     },
     orderBy: {
       time: 'desc',
