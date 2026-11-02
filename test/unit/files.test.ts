@@ -325,12 +325,12 @@ describe('copyFile and deletePath', () => {
 
   it('leaves a file copied or moved onto itself untouched', async () => {
     await copyFile(event, 'u/123/a.txt', 'u/123/a.txt')
-    await copyFile(event, 'u/123/a.txt', 'u/123//a.txt/', true, true)
+    await copyFile(event, 'u/123/a.txt', 'u/123//a.txt/', { deleteSrc: true })
     expect(await readFile(privatePath('u/123/a.txt'), 'utf8')).toBe('hello')
   })
 
   it('moves a file', async () => {
-    await copyFile(event, 'u/123/a.txt', 'u/123/sub/b.txt', true, true)
+    await copyFile(event, 'u/123/a.txt', 'u/123/sub/b.txt', { deleteSrc: true })
     expect(await readFile(privatePath('u/123/sub/b.txt'), 'utf8')).toBe('hello')
     expect(await readdir(privatePath('u/123'))).toEqual(['sub'])
   })
@@ -396,13 +396,13 @@ describe('copyFile and deletePath', () => {
 
   it('stores an upload at a path that looks like a file', async () => {
     const file = new File(['img'], 'photo.jpg')
-    await uploadFile(event, file, 'u/123/avatar.png')
+    await uploadFile(event, file, { path: 'u/123/avatar.png' })
     expect(await readFile(privatePath('u/123/avatar.png'), 'utf8')).toBe('img')
   })
 
   it('stores an upload inside a folder with a dot when the path ends with a slash', async () => {
     const file = new File(['nested'], 'b.txt')
-    await uploadFile(event, file, 'u/123/v1.2/')
+    await uploadFile(event, file, { path: 'u/123/v1.2/' })
     expect(await readFile(privatePath('u/123/v1.2/b.txt'), 'utf8')).toBe('nested')
   })
 
@@ -453,7 +453,7 @@ describe('getFile', () => {
   })
 
   const contentType = async (path: string) => {
-    const stream: any = await getFile(event, path, true)
+    const stream: any = await getFile(event, path, { isPrivate: true })
     await stream.cancel()
     return setHeader.mock.calls.find(([, name]) => name === 'Content-Type')?.[2]
   }

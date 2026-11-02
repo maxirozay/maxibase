@@ -61,7 +61,7 @@ const chunkedUpload = (maxAge?: number, totalChunks = 2) =>
 describe('S3 upload cache', () => {
   it('stores the requested max age on a single upload', async () => {
     const file = new File(['x'], 'logo.png', { type: 'image/png' })
-    expect(await uploadFile(event, file, 'u/123', false, 60)).toBe(
+    expect(await uploadFile(event, file, { path: 'u/123', isPrivate: false, maxAge: 60 })).toBe(
       '/files/files/public/u/123/logo.png',
     )
     expect(sent(PutObjectCommand).input.CacheControl).toBe('public, max-age=60')
@@ -84,7 +84,7 @@ describe('S3 private file URLs', () => {
 
   it('returns the API URL after a single upload', async () => {
     const file = new File(['x'], 'big.bin')
-    expect(await uploadFile(event, file, 'u/123', true)).toBe(privateURL)
+    expect(await uploadFile(event, file, { path: 'u/123', isPrivate: true })).toBe(privateURL)
   })
 
   it('returns the API URL after a chunked upload', async () => {
@@ -97,19 +97,19 @@ describe('S3 private file URLs', () => {
         ? { Contents: [{ Key: 'files/private/u/123/big.bin', Size: 1 }] }
         : {},
     )
-    const [file] = await listFolder(event, 'u/123', true)
+    const [file] = await listFolder(event, 'u/123', { isPrivate: true })
     expect(file!.url).toBe(privateURL)
   })
 })
 
 describe('S3 copy', () => {
   it('keeps a public file public', async () => {
-    await copyFile(event, 'u/123/a.png', 'u/123/b.png', false)
+    await copyFile(event, 'u/123/a.png', 'u/123/b.png', { isPrivate: false })
     expect(sent(CopyObjectCommand).input.ACL).toBe('public-read')
   })
 
   it('sets no ACL on a private file', async () => {
-    await copyFile(event, 'u/123/a.png', 'u/123/b.png', true)
+    await copyFile(event, 'u/123/a.png', 'u/123/b.png', { isPrivate: true })
     expect(sent(CopyObjectCommand).input.ACL).toBeUndefined()
   })
 })
@@ -120,7 +120,9 @@ describe('S3 proxied file', () => {
 
   it('reports a missing file as not found', async () => {
     const fetch = fetchStatus(404)
-    await expect(getFile(event, 'u/123/gone.png', true, undefined, false)).rejects.toMatchObject({
+    await expect(
+      getFile(event, 'u/123/gone.png', { isPrivate: true, redirect: false }),
+    ).rejects.toMatchObject({
       statusCode: 404,
     })
     fetch.mockRestore()
@@ -128,7 +130,9 @@ describe('S3 proxied file', () => {
 
   it('reports any other S3 failure as a bad gateway', async () => {
     const fetch = fetchStatus(500)
-    await expect(getFile(event, 'u/123/a.png', true, undefined, false)).rejects.toMatchObject({
+    await expect(
+      getFile(event, 'u/123/a.png', { isPrivate: true, redirect: false }),
+    ).rejects.toMatchObject({
       statusCode: 502,
     })
     fetch.mockRestore()

@@ -1,8 +1,12 @@
+export type ImageFormat = {
+  maxHeight?: number
+  format?: string
+  quality?: number
+}
+
 export async function formatImage(
   file: File,
-  maxHeight?: number,
-  format: string = 'webp',
-  quality: number = 0.8,
+  { maxHeight, format = 'webp', quality = 0.8 }: ImageFormat = {},
 ): Promise<File> {
   if (file.type === 'image/svg+xml') return file
 

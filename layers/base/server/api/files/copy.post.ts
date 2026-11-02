@@ -9,6 +9,6 @@ const bodySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const { src, dest, isPrivate, deleteSrc } = await readValidatedBody(event, bodySchema.parse)
-  await copyFiles(event, src, dest, isPrivate, deleteSrc)
+  await copyFiles(event, src, dest, { isPrivate, deleteSrc })
   return { success: true }
 })

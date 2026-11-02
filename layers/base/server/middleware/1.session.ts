@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   try {
     const { user } = await verifyRefreshToken(event)
 
-    const sessionData = await setSession(event, user, false)
+    const sessionData = await setSession(event, user, { refresh: false })
     session.user = sessionData?.user // to update the session on SSR
     await updateLastActive(user.id)
   } catch {}

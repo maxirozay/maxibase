@@ -83,15 +83,11 @@ describe('clean task', () => {
     expect(logSpy).toHaveBeenCalledTimes(2)
     expect(logSpy).toHaveBeenCalledWith(
       'Cleaning backups failed: no folder',
-      expect.anything(),
-      'clean task',
-      'error',
+      expect.objectContaining({ origin: 'clean task', type: 'error' }),
     )
     expect(logSpy).toHaveBeenCalledWith(
       'Cleaning S3 backups failed: S3 down',
-      expect.anything(),
-      'clean task',
-      'error',
+      expect.objectContaining({ origin: 'clean task', type: 'error' }),
     )
   })
 })

@@ -51,8 +51,10 @@ export const useAppStore = defineStore('app', () => {
   function notify(
     message: string,
     type: 'success' | 'error' = 'success',
-    isSticky = false,
-    params?: Record<string, string | number>,
+    {
+      isSticky = false,
+      params, // values for the translation of message
+    }: { isSticky?: boolean; params?: Record<string, string | number> } = {},
   ) {
     if (!message) return
     const id = ++lastNotificationId

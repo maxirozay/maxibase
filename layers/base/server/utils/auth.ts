@@ -105,7 +105,8 @@ export async function getAuth(event: H3Event, email?: string, credentials = fals
   return user
 }
 
-export async function setSession(event: H3Event, user: SessionUser, refresh = true) {
+// refresh: false keeps the refresh token and authenticatedAt, to update the session data only
+export async function setSession(event: H3Event, user: SessionUser, { refresh = true } = {}) {
   if (refresh) {
     if (useRuntimeConfig().session.unique) {
       await revokeAllUserTokens(user.id)
@@ -191,11 +192,9 @@ export async function cleanInactiveUsers() {
       .delete(auth)
       .where(and(inArray(auth.id, ids), inactive))
       .returning({ id: auth.id })
-    await log(
-      `Deleted ${deleted.length} users inactive for ${retentionDays} days`,
-      undefined,
-      'clean task',
-    )
+    await log(`Deleted ${deleted.length} users inactive for ${retentionDays} days`, {
+      origin: 'clean task',
+    })
   }
 
   const failedWarnings = warningDays > 0 ? await warnInactiveUsers(retentionDays, warningDays) : 0
@@ -236,7 +235,7 @@ async function warnInactiveUsers(retentionDays: number, warningDays: number) {
       deletionOn,
     )
     try {
-      await sendEmailTemplate('inactiveDeletion', locale, { date }, user.email!)
+      await sendEmailTemplate('inactiveDeletion', { to: user.email!, locale, params: { date } })
       await db
         .update(auth)
         .set({ deletionWarnedOn: sql`current_date` })
@@ -247,11 +246,9 @@ async function warnInactiveUsers(retentionDays: number, warningDays: number) {
   }
 
   if (users.length > failed) {
-    await log(
-      `Warned ${users.length - failed} inactive users of their deletion`,
-      undefined,
-      'clean task',
-    )
+    await log(`Warned ${users.length - failed} inactive users of their deletion`, {
+      origin: 'clean task',
+    })
   }
   return failed
 }

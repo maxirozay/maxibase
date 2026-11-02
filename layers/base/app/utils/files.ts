@@ -1,9 +1,14 @@
+export type UploadOptions = {
+  path: string
+  isPrivate?: boolean
+  maxAge?: number // seconds the browser and CDN may cache the file, 0 disables caching
+  onProgress?: (progress: number) => void
+}
+
+// onProgress gets the percentage uploaded
 export async function uploadFiles(
   files: File[],
-  path: string,
-  isPrivate: boolean,
-  onProgress?: (progress: number) => void,
-  maxAge?: number, // seconds the browser and CDN may cache the file, 0 disables caching
+  { path, isPrivate = true, maxAge, onProgress }: UploadOptions,
 ) {
   let totalSize = files.reduce((sum, f) => sum + f.size, 0)
 
@@ -35,7 +40,12 @@ export async function uploadFiles(
           const progress = (uploadedSize / totalSize) * 100
           onProgress?.(Math.round(progress))
         }
-        const url = await uploadInChunks(file, path, isPrivate, onChunkProgress, maxAge)
+        const url = await uploadInChunks(file, {
+          path,
+          isPrivate,
+          maxAge,
+          onProgress: onChunkProgress,
+        })
         if (url) urls.push(url)
       }
     }
@@ -49,12 +59,10 @@ async function postFiles(body: FormData): Promise<string[]> {
   return urls.filter((url): url is string => !!url)
 }
 
+// onProgress gets the bytes each chunk added
 export async function uploadInChunks(
   file: File,
-  path: string,
-  isPrivate: boolean,
-  onProgress?: (progress: number) => void,
-  maxAge?: number,
+  { path, isPrivate = true, maxAge, onProgress }: UploadOptions,
 ) {
   let uploadId
   let parts: any[] = []
@@ -92,7 +100,7 @@ export function getChunkSize() {
   return (Number(config.public.files.chunkSize) || 1) * 1024 * 1024 // 1MB
 }
 
-export function deleteFiles(path: string, isPrivate?: boolean) {
+export function deleteFiles(path: string, { isPrivate }: { isPrivate?: boolean } = {}) {
   return $fetch('/api/files', {
     method: 'DELETE',
     body: { path, isPrivate },

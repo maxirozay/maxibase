@@ -116,12 +116,11 @@ describe('POST /api/auth/recovery/verify', () => {
     const [code] = await generateRecoveryCodes('user-1')
     await verify({ body: { email: user.email, password: 'correct horse', code } } as any)
     expect(setSession).toHaveBeenCalledWith(expect.anything(), user)
-    expect(sendEmailTemplate).toHaveBeenCalledWith(
-      'recoveryCodeUsed',
-      'en',
-      { remaining: 9 },
-      user.email,
-    )
+    expect(sendEmailTemplate).toHaveBeenCalledWith('recoveryCodeUsed', {
+      to: user.email,
+      locale: 'en',
+      params: { remaining: 9 },
+    })
   })
 
   // The code replaces the second factor only: a wrong first factor must not spend it

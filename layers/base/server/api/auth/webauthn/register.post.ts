@@ -44,7 +44,7 @@ const registerHandler = defineWebAuthnRegisterEventHandler({
       backedUp: credential.backedUp,
       transports: credential.transports as any[],
     })
-    await setSession(event, session.user, false) // refresh requiresMfaSetup
+    await setSession(event, session.user, { refresh: false }) // refresh requiresMfaSetup
   },
 })
 

@@ -36,9 +36,7 @@ function waitForExit(child: ChildProcess, name: string) {
 
 export async function createDatabaseBackup(
   backupName: string,
-  dbUrl: string,
-  dumpArgs: string,
-  agePublicKey?: string,
+  { dbUrl, dumpArgs, agePublicKey }: { dbUrl: string; dumpArgs: string; agePublicKey?: string },
 ) {
   const { conn, env } = splitCredentials(dbUrl)
   const args = [...dumpArgs.split(' ').filter(Boolean), conn]
@@ -99,13 +97,13 @@ export async function cleanOldBackups() {
 
 export async function cleanOldS3Backups() {
   const config = useRuntimeConfig()
-  const backups = await listFromS3('backups', true)
+  const backups = await listFromS3('backups', { isPrivate: true })
   const retentionMs = daysToMilliseconds(config.backup.retentionDays)
   const cutoffDate = new Date(Date.now() - retentionMs)
   await Promise.all(
     backups.map((b) => {
       if (b.updatedAt && b.updatedAt < cutoffDate) {
-        return deleteFromS3(`backups/${b.name}`, true)
+        return deleteFromS3(`backups/${b.name}`, { isPrivate: true })
       }
     }),
   )

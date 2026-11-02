@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const codes = await generateRecoveryCodes(user.id)
-  await log('Recovery codes generated', undefined, undefined, 'security', event)
+  await log('Recovery codes generated', { type: 'security', event })
 
   return { codes }
 })

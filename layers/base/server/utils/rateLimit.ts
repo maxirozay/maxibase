@@ -79,12 +79,12 @@ export async function enforceRateLimit(
 
   if (entry.count === rule.limit * config.rateLimit.banMultiplier) {
     entry.bannedUntil = now + config.rateLimit.banSeconds * 1000
-    await log('Rate limit ban', undefined, route, 'security', event).catch(() => {})
+    await log('Rate limit ban', { origin: route, type: 'security', event }).catch(() => {})
     throw tooManyRequests(event, entry.bannedUntil - now)
   }
 
   if (entry.count === rule.limit + 1) {
-    await log('Rate limit exceeded', undefined, route, 'security', event).catch(() => {})
+    await log('Rate limit exceeded', { origin: route, type: 'security', event }).catch(() => {})
   }
 
   throw tooManyRequests(event, entry.resetAt - now)
