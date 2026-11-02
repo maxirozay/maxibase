@@ -1,5 +1,5 @@
 export default defineEventHandler(async (event) => {
-  if (process.env.NODE_ENV === 'production') {
+  if (!import.meta.dev) {
     throw createError({
       status: 404,
       message: 'Not found',
