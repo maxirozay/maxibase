@@ -180,6 +180,8 @@ This repo is published on npm as [`maxibase`](https://www.npmjs.com/package/maxi
 root of the repo is an example project: copy it to start a new project, then edit what you
 need.
 
+Upgrading a project from v1? See [MIGRATION.md](MIGRATION.md).
+
 ### Using it in a project
 
 ```sh
