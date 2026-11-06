@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
   const chunkIndex = Number(get('chunkIndex'))
   const totalChunks = Number(get('totalChunks'))
   const filename = get('filename')
-  const type = get('type') || 'application/octet-stream'
+  const type = get('type')
   const path = get('path') || 'files'
   const isPrivate = get('isPrivate') !== 'false'
   const parts = parseParts(get('parts'))

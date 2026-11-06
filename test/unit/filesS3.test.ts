@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { Readable } from 'stream'
 import {
   S3Client,
   CopyObjectCommand,
@@ -15,6 +16,7 @@ import {
   listFolder,
   uploadChunk,
   uploadFile,
+  uploadStream,
 } from '#server-utils/files'
 
 // Kept apart from files.test.ts: the S3 client is cached once created, so every
@@ -75,6 +77,75 @@ describe('S3 upload cache', () => {
   it('gives a chunked upload the default cache when no max age is given', async () => {
     await chunkedUpload()
     expect(sent(CreateMultipartUploadCommand).input.CacheControl).toBe('private, max-age=3600')
+  })
+})
+
+describe('S3 content type', () => {
+  const storedType = async (name: string, type?: string, path = 'u/123') => {
+    await uploadFile(event, new File(['x'], name, { type }), path, false)
+    return sent(PutObjectCommand).input.ContentType
+  }
+
+  it('keeps the type sent with the file', async () => {
+    expect(await storedType('notes.js', 'text/plain')).toBe('text/plain')
+  })
+
+  it('uses the extension when the file has no type', async () => {
+    expect(await storedType('app.js')).toBe('text/javascript')
+  })
+
+  it('treats octet-stream as no type, FormData sends it for an empty type', async () => {
+    expect(await storedType('app.js', 'application/octet-stream')).toBe('text/javascript')
+  })
+
+  it('reads the extension from the path of an unnamed blob', async () => {
+    expect(
+      await storedType('blob', 'application/octet-stream', 'u/123/sco/content/assets/data.js'),
+    ).toBe('text/javascript')
+  })
+
+  it('recognizes an upper case extension', async () => {
+    expect(await storedType('APP.JS')).toBe('text/javascript')
+  })
+
+  it('falls back to octet-stream for an unknown extension', async () => {
+    expect(await storedType('data.unknownext')).toBe('application/octet-stream')
+  })
+
+  it('uses the extension on a chunked upload without a type', async () => {
+    await uploadChunk(event, {
+      chunkIndex: 0,
+      totalChunks: 2,
+      filename: 'video.mp4',
+      type: 'application/octet-stream',
+      chunk: Buffer.alloc(1),
+      path: 'u/123',
+      isPrivate: true,
+      parts: [],
+    })
+    expect(sent(CreateMultipartUploadCommand).input.ContentType).toBe('video/mp4')
+  })
+
+  it('uses the extension on a stream without a type', async () => {
+    await uploadStream(
+      event,
+      { stream: Readable.from([Buffer.from('x')]), filename: 'report.pdf' },
+      'u/123',
+    )
+    expect(sent(PutObjectCommand).input.ContentType).toBe('application/pdf')
+  })
+
+  it('keeps octet-stream on a stream, the server sets it to force a download', async () => {
+    await uploadStream(
+      event,
+      {
+        stream: Readable.from([Buffer.from('x')]),
+        filename: 'page.html',
+        type: 'application/octet-stream',
+      },
+      'u/123',
+    )
+    expect(sent(PutObjectCommand).input.ContentType).toBe('application/octet-stream')
   })
 })
 

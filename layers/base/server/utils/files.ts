@@ -36,6 +36,12 @@ import mime from 'mime'
 
 const MB = 1024 * 1024
 
+// FormData sends an empty type as octet-stream, so that value means the type is unknown
+function getContentType(path: string, type?: string) {
+  if (type && type !== 'application/octet-stream') return type
+  return mime.getType(path) || 'application/octet-stream'
+}
+
 function fileTooLarge() {
   const { maxSize } = useRuntimeConfig().public.files
   return createError({ status: 413, message: `File too large, max ${maxSize} MB` })
@@ -66,7 +72,7 @@ export async function uploadFile(
     url = await uploadToS3(
       s3Key,
       data,
-      file.type || 'application/octet-stream',
+      getContentType(path, file.type),
       getCacheControl(isPrivate, maxAge),
       isPrivate,
     )
@@ -96,7 +102,7 @@ export async function uploadStream(
     return uploadStreamToS3(
       getS3Key(path),
       file.stream,
-      file.type || 'application/octet-stream',
+      file.type || getContentType(path),
       getCacheControl(isPrivate, maxAge),
       isPrivate,
     )
@@ -141,7 +147,7 @@ export async function uploadChunk(
     chunkIndex: number
     totalChunks: number
     filename: string
-    type: string
+    type?: string
     chunk: Buffer
     path: string
     isPrivate: boolean
@@ -165,7 +171,7 @@ export async function uploadChunk(
     if (!uploadId) {
       uploadId = (await initMultipartUploadToS3(
         getS3Key(path),
-        type,
+        getContentType(path, type),
         isPrivate,
         getCacheControl(isPrivate, maxAge),
       ))!
@@ -362,7 +368,7 @@ export async function getFile(
     throw createError({ status: 404, message: 'File not found' })
   }
 
-  setHeader(event, 'Content-Type', mime.getType(fullPath) || 'application/octet-stream')
+  setHeader(event, 'Content-Type', getContentType(fullPath))
   setHeader(event, 'Accept-Ranges', 'bytes')
 
   const parsedRange = parseRangeHeader(range, stats.size)
