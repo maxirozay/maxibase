@@ -268,14 +268,14 @@ onBeforeUnmount(() => WebAuthnAbortService.cancelCeremony())
             />
             <button
               type="button"
-              class="flex-center fg"
+              class="flex-center"
               @click="showPassword = !showPassword"
             >
               <Icon :name="showPassword ? 'lucide:eye-off' : 'lucide:eye'" />
             </button>
             <button
               type="button"
-              class="flex-center fg"
+              class="flex-center"
               :title="$t('paste') as string"
               @click="pasteTo('password')"
             >
@@ -299,7 +299,7 @@ onBeforeUnmount(() => WebAuthnAbortService.cancelCeremony())
             />
             <button
               type="button"
-              class="flex-center fg"
+              class="flex-center"
               :title="$t('paste') as string"
               :disabled="isLoading || !password"
               @click="pasteTo('recoveryCode')"
@@ -325,7 +325,7 @@ onBeforeUnmount(() => WebAuthnAbortService.cancelCeremony())
             />
             <button
               type="button"
-              class="flex-center fg"
+              class="flex-center"
               :title="$t('paste') as string"
               :disabled="isLoading || !password"
               @click="pasteTo('totp')"
@@ -438,6 +438,11 @@ onBeforeUnmount(() => WebAuthnAbortService.cancelCeremony())
 .signin {
   box-sizing: border-box;
   width: min(400px, 100vw - (var(--g-padding-l) + var(--g-padding-r)) * var(--g-padding-ratio2));
+}
+
+.group > button {
+  background: var(--g-input-bg);
+  color: var(--g-input-color);
 }
 
 .provider,
