@@ -451,6 +451,12 @@ onBeforeUnmount(() => WebAuthnAbortService.cancelCeremony())
   border-radius: var(--g-border-radius);
   font-size: 14px;
   color: inherit;
+  cursor: pointer;
+}
+
+.provider:hover,
+:slotted(.provider:hover) {
+  border-color: var(--g-active);
 }
 
 .provider > :is(img, .iconify),
