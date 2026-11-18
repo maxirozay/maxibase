@@ -7,6 +7,4 @@ set -e
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 source "$SCRIPT_DIR/env.sh"
 
-SSH_KEY="$HOME/.ssh/$SSH_KEY_NAME"
-
-ssh -i $SSH_KEY $SERVER_URL "cd $REMOTE_PATH && bash switch.sh $PROJECT_NAME ${1:-previous}"
+ssh "${SSH_OPTS[@]}" $SERVER_URL "cd $REMOTE_PATH && bash switch.sh $PROJECT_NAME ${1:-previous}"

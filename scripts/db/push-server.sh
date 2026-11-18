@@ -6,12 +6,11 @@ source "$SCRIPT_DIR/../env.sh"
 
 LOCAL_PORT=5433
 REMOTE_PORT=5432
-SSH_KEY="$HOME/.ssh/$SSH_KEY_NAME"
 CONTROL_SOCKET="/tmp/.${PROJECT_NAME}-db-tunnel.$$"
 
 # Master connection, reused for both the tunnel and the credential read, so this
 # authenticates once. -f backgrounds it, -N runs no remote command.
-ssh -M -S "$CONTROL_SOCKET" -f -N -L "$LOCAL_PORT:localhost:$REMOTE_PORT" -i "$SSH_KEY" "$SERVER_URL"
+ssh -M -S "$CONTROL_SOCKET" -f -N -L "$LOCAL_PORT:localhost:$REMOTE_PORT" "${SSH_OPTS[@]}" "$SERVER_URL"
 trap 'ssh -S "$CONTROL_SOCKET" -O exit "$SERVER_URL" 2>/dev/null || true' EXIT
 
 # The app's own connection string is the single source of truth, so there is no second

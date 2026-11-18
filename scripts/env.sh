@@ -18,3 +18,12 @@ if [ -f "$ENV_FILE" ]; then
   . "$ENV_FILE"
 fi
 set +a
+# SSH_KEY_NAME is optional: leave it empty to rely on ssh-agent, ~/.ssh/config or
+# Tailscale SSH (e.g. in CI), where no key file is used.
+SSH_OPTS=()
+case "$SSH_KEY_NAME" in
+  "") ;;
+  "~/"*) SSH_OPTS=(-i "$HOME/${SSH_KEY_NAME#\~/}") ;;
+  /*) SSH_OPTS=(-i "$SSH_KEY_NAME") ;;
+  *) SSH_OPTS=(-i "$HOME/.ssh/$SSH_KEY_NAME") ;;
+esac
