@@ -82,7 +82,7 @@ describe('S3 upload cache', () => {
 
 describe('S3 content type', () => {
   const storedType = async (name: string, type?: string, path = 'u/123') => {
-    await uploadFile(event, new File(['x'], name, { type }), path, false)
+    await uploadFile(event, new File(['x'], name, { type }), { path, isPrivate: false })
     return sent(PutObjectCommand).input.ContentType
   }
 
@@ -130,7 +130,7 @@ describe('S3 content type', () => {
     await uploadStream(
       event,
       { stream: Readable.from([Buffer.from('x')]), filename: 'report.pdf' },
-      'u/123',
+      { path: 'u/123', isPrivate: false },
     )
     expect(sent(PutObjectCommand).input.ContentType).toBe('application/pdf')
   })
@@ -143,7 +143,7 @@ describe('S3 content type', () => {
         filename: 'page.html',
         type: 'application/octet-stream',
       },
-      'u/123',
+      { path: 'u/123', isPrivate: false },
     )
     expect(sent(PutObjectCommand).input.ContentType).toBe('application/octet-stream')
   })
