@@ -271,6 +271,7 @@ A project's `package.json` looks like this. Add any package your own files impor
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "prod": "bash node_modules/maxibase/scripts/deploy.sh",
+    "prod:build": "bash node_modules/maxibase/scripts/build.sh",
     "rollback": "bash node_modules/maxibase/scripts/rollback.sh",
     "db:seed": "npx jiti ./server/database/seed.ts",
     "db:generate": "drizzle-kit generate",
