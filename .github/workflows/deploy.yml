@@ -1,0 +1,77 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main, dev]
+  workflow_dispatch:
+
+jobs:
+  # Runs the dependencies' code, so it gets no secrets.
+  build:
+    runs-on: ubuntu-latest
+    env:
+      PROJECT_NAME: ${{ vars.PROJECT_NAME }}-${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm prod:build
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release
+          path: .release
+          include-hidden-files: true
+          retention-days: 1
+
+  # Has the secrets, so it runs nothing from the project or npm.
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+    env:
+      SERVER_URL: ${{ vars.SERVER_URL }}
+      REMOTE_PATH: ${{ vars.REMOTE_PATH }}
+      SSH_KEY_NAME: deploy_key
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release
+          path: .release
+
+      - name: Connect to NetBird
+        run: |
+          curl -fsSL https://pkgs.netbird.io/install.sh | sh
+          sudo netbird profile claim default
+          sudo netbird up --setup-key "${{ secrets.NETBIRD_SETUP_KEY }}" --hostname "gh-${{ github.run_id }}"
+          HOST="${SERVER_URL#*@}"
+          for i in $(seq 1 30); do nc -z -w2 "$HOST" 22 && break; sleep 2; done
+          sudo netbird status
+
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          install -m 600 /dev/null ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          if [ -n "$SSH_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            printf 'Host *\n  StrictHostKeyChecking accept-new\n' > ~/.ssh/config
+          fi
+
+      - run: bash .release/upload.sh
+
+      - name: Disconnect NetBird
+        if: always()
+        run: sudo netbird down

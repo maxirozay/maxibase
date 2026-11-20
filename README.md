@@ -110,6 +110,17 @@ list what is available with `pnpm rollback --list`. Rolling back does not undo m
 
 Push your migration through SSH with `pnpm db:push-prod`.
 
+### From GitHub Actions
+
+Copy `.github/workflows/deploy.yml`. It builds in a job without secrets, so dependencies never
+run next to them, then deploys the result over NetBird from a job that installs nothing.
+
+- Repository variable: `PROJECT_NAME` (the build job has no environment).
+- `prod` environment, limited to your deploy branch:
+  - secrets `NETBIRD_SETUP_KEY` and `DEPLOY_SSH_KEY`
+  - variables `SERVER_URL`, `REMOTE_PATH`, and optionally `SSH_KNOWN_HOSTS`
+    (the output of `ssh-keyscan {server}`); without it the host key is not checked.
+
 In a project that uses the layer, these scripts run from the package, see [Scripts](#scripts).
 
 ### Run one instance
@@ -271,6 +282,7 @@ A project's `package.json` looks like this. Add any package your own files impor
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "prod": "bash node_modules/maxibase/scripts/deploy.sh",
+    "prod:build": "bash node_modules/maxibase/scripts/build.sh",
     "rollback": "bash node_modules/maxibase/scripts/rollback.sh",
     "db:seed": "npx jiti ./server/database/seed.ts",
     "db:generate": "drizzle-kit generate",
