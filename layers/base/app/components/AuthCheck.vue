@@ -153,7 +153,7 @@ function signIn() {
     if (!signInForm.value?.reportValidity()) return
     if (useRecoveryCode.value) signInWithRecoveryCode()
     else if (totp.value) signInWithTOTP()
-    else if (password.value.length === 6) signInWithOtp()
+    else if (!options.value.hasPassword || 'otp' in firstFactor()) signInWithOtp()
     else signInWithPassword()
   }, 100)
 }
