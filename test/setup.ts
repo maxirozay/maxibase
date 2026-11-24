@@ -29,7 +29,7 @@ export function setConfig(overrides: AnyRecord = {}) {
 
 export const storage = new Map<string, any>()
 
-export const session: { user?: AnyRecord } = {}
+export const session: { id?: string; user?: AnyRecord } = {}
 
 export const logSpy = vi.fn(async () => {})
 
@@ -37,6 +37,7 @@ export function resetTestState() {
   config = defaultConfig()
   storage.clear()
   delete session.user
+  delete session.id
   logSpy.mockClear()
 }
 
@@ -78,6 +79,13 @@ Object.assign(globalThis, {
   readValidatedBody: async (event: AnyRecord, parse: (body: unknown) => unknown) =>
     parse(event?.body),
   getRequestURL: (event: AnyRecord) => new URL(event?.path ?? '/', 'https://app.test'),
+  getCookie: (event: AnyRecord, name: string) => event?.cookies?.[name],
+  setCookie: (event: AnyRecord, name: string, value: string) => {
+    if (event) event.cookies = { ...event.cookies, [name]: value }
+  },
+  deleteCookie: (event: AnyRecord, name: string) => {
+    if (event?.cookies) delete event.cookies[name]
+  },
   setResponseHeader: vi.fn(),
   setHeader: vi.fn(),
   setResponseStatus: vi.fn(),

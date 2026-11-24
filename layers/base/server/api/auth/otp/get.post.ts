@@ -13,6 +13,7 @@ export interface OTP {
   token?: string // magic link only, absent on flows that issue no link
   attempts: number
   sentAt: number
+  sessionId?: string
 }
 
 export default defineEventHandler(async (event) => {
@@ -40,6 +41,7 @@ export default defineEventHandler(async (event) => {
     attempts: 0,
     sentAt: Date.now(),
     token: await hashPassword(token),
+    sessionId: (await getUserSession(event)).id,
   })
 
   try {

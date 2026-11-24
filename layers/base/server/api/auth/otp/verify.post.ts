@@ -5,10 +5,12 @@ import type { OTP } from './get.post'
 const bodySchema = z.object({
   email: emailSchema,
   otp: otpSchema,
+  sameBrowser: z.boolean().optional(),
 })
 
 export default defineEventHandler(async (event) => {
-  const { email, otp } = await readValidatedBody(event, bodySchema.parse)
+  const { email, otp, sameBrowser } = await readValidatedBody(event, bodySchema.parse)
+  if (sameBrowser) await requireSameBrowser(event, email)
 
   const existing = await getAuth(event, email, true).catch((error) => {
     if (error.statusCode !== 404) throw error
@@ -22,6 +24,13 @@ export default defineEventHandler(async (event) => {
   requireSecondFactor(user) // an anonymous account can already have a TOTP
   return setSession(event, user)
 })
+
+async function requireSameBrowser(event: H3Event, email: string) {
+  const { id } = await getUserSession(event)
+  const record = await useStorage('auth').getItem<OTP>(email)
+  if (id && record?.sessionId === id) return
+  throw createError({ status: 409, message: 'Confirm sign-in.' })
+}
 
 async function signUp(event: H3Event, email: string) {
   const session = await getUserSession(event)

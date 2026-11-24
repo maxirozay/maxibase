@@ -53,16 +53,17 @@ async function requestOtp() {
   }
 }
 
-async function signInWithOtp() {
+async function signInWithOtp(sameBrowser = false) {
   isLoading.value = true
   try {
     await $fetch('/api/auth/otp/verify', {
       method: 'POST',
-      body: { email: email.value, otp: password.value },
+      body: { email: email.value, otp: password.value, sameBrowser },
     })
     await refreshSession()
   } catch (e: any) {
-    handleError(e)
+    // opened in another browser or by an email scanner: wait for the sign in click
+    if (!(sameBrowser && e.status === 409)) handleError(e)
   } finally {
     otpRequested.value = false
     isLoading.value = false
@@ -189,7 +190,7 @@ async function getSignInOptions(email: string) {
     })
     if (route.query.token) {
       password.value = route.query.token as string
-      if (!options.value.hasTOTP) await signInWithOtp()
+      if (!options.value.hasTOTP) await signInWithOtp(true)
     } else if (options.value.hasPasskey) {
       await signInWithPasskey(email)
     } else if (!options.value.hasPassword) {

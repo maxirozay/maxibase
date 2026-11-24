@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { resetTestState, setConfig, storage } from '../setup'
+import { resetTestState, session, setConfig, storage } from '../setup'
 import handler, { verifyOTP } from '#server-api/auth/otp/verify.post'
 import { requireSecondFactor } from '#server-utils/auth'
 import requestHandler, { generateOTP } from '#server-api/auth/otp/get.post'
@@ -166,6 +166,22 @@ describe('POST /api/auth/otp/verify', () => {
     expect(createAuth).not.toHaveBeenCalled()
   })
 
+  // An email scanner opening the magic link does not have the requesting browser's session.
+  it('auto sign-in from the link only works in the requesting browser', async () => {
+    users.set(email, { id: '1', email, credentials: [] })
+    seed({ sessionId: 'requester' })
+    const link = () => handler({ body: { email, otp: '123456', sameBrowser: true } } as any)
+
+    await expect(link()).rejects.toMatchObject({ statusCode: 409 })
+    session.id = 'scanner'
+    await expect(link()).rejects.toMatchObject({ statusCode: 409 })
+    expect(storage.get(`auth:${email}`)).toMatchObject({ attempts: 0 })
+
+    session.id = 'requester'
+    await link()
+    expect(setSession).toHaveBeenCalledOnce()
+  })
+
   it('signs up an unknown email when autoSignup is on', async () => {
     setConfig({ autoSignup: true })
     seed()
@@ -196,5 +212,11 @@ describe('POST /api/auth/otp/get', () => {
     const result = await requestHandler({ body: { email } } as any)
     expect(sendEmailTemplate).toHaveBeenCalledOnce()
     expect(result).toBeUndefined()
+  })
+
+  it('ties the code to the requesting browser', async () => {
+    session.id = 'requester'
+    await requestHandler({ body: { email } } as any)
+    expect(storage.get(`auth:${email}`).sessionId).toBe('requester')
   })
 })
